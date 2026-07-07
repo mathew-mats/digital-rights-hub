@@ -1,5 +1,5 @@
 from django.contrib.auth import login, authenticate, logout
-from django.contrib.messages import get_messages  # <-- Add this
+from django.contrib.messages import get_messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
@@ -24,7 +24,6 @@ def get_gemini_client():
     return settings._gemini_client
 
 MODEL_NAME = 'gemini-2.5-flash'
-# --- Memory Limit ---
 MAX_HISTORY = 10
 
 # --- Synonym dictionary for fallback ---
@@ -45,38 +44,12 @@ def get_conversation_history(session):
     """Get last N messages from session."""
     messages = ChatMessage.objects.filter(session=session).order_by('-created_at')[:MAX_HISTORY]
     history = []
-    for msg in reversed(messages):  # oldest to newest
+    for msg in reversed(messages):
         role = 'user' if not msg.is_bot else 'assistant'
         history.append({'role': role, 'content': msg.message})
     return history
 
 def get_faq_fallback(user_message):
-    """Check FAQ database for matches."""
-    clean_msg = re.sub(r'[^\w\s]', '', user_message.lower())
-    user_words = set(clean_msg.split())
-    
-    all_faqs = FAQ.objects.all()
-    best_match = None
-    best_score = 0
-    
-    for faq in all_faqs:
-        faq_words = set(faq.question.lower().split())
-        matches = len(user_words.intersection(faq_words))
-        
-        # Bonus for exact phrase match
-        if user_message.lower() in faq.question.lower():
-            matches += 10
-        
-        if matches > best_score:
-            best_score = matches
-            best_match = faq
-    
-    # Require at least 3 matching words to consider it a good match
-    if best_match and best_score >= 3:
-        return best_match.answer
-    
-    # Return None to indicate no good FAQ match
-    return None
     """Fallback FAQ matching."""
     print(f"🟡 Using FAQ fallback for: {user_message}")
     clean_msg = re.sub(r'[^\w\s]', '', user_message.lower())
@@ -105,30 +78,14 @@ def get_faq_fallback(user_message):
             "Please explore our Learning Resources or contact the Uganda Youth Internet Governance Forum (UYIGF).")
 
 def get_gemini_response_with_memory(user_message, history):
-    try:
-        # Use lazy-loaded client
-        client = get_gemini_client()
-        
-        # ... rest of your code ...
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=full_context
-        )
-        return response.text
-    except Exception as e:
-        print(f"Gemini error: {e}")
-        return get_faq_fallback(user_message)
     """Smart hybrid: FAQ first, Gemini fallback."""
-    
-    # --- STEP 1: CHECK FAQ DATABASE FIRST ---
+    # STEP 1: CHECK FAQ DATABASE FIRST
     faq_answer = get_faq_fallback(user_message)
-    
-    # If FAQ has a good match (not the generic fallback message), use it
     if faq_answer and "I don't have a specific answer" not in faq_answer:
         print(f"✅ Using FAQ answer for: {user_message}")
         return faq_answer
-    
-    # --- STEP 2: NO FAQ MATCH - TRY GEMINI ---
+
+    # STEP 2: NO FAQ MATCH - TRY GEMINI
     print(f"🔵 No FAQ match. Trying Gemini for: {user_message}")
     
     # Build the prompt
@@ -159,28 +116,26 @@ User: {user_message}
 
 Assistant:"""
     
-    # --- STEP 3: RETRY LOGIC FOR GEMINI ---
+    # STEP 3: RETRY LOGIC FOR GEMINI
     max_attempts = 3
+    client = get_gemini_client()
     for attempt in range(max_attempts):
         try:
             response = client.models.generate_content(
                 model=MODEL_NAME,
                 contents=prompt
             )
-            
             raw_response = response.text
             formatted_response = raw_response.replace('\n\n', '<br><br>').replace('\n', '<br>')
-            
             print(f"🟢 Gemini response received!")
             return formatted_response
             
         except Exception as e:
             error_msg = str(e)
             print(f"🔴 Attempt {attempt + 1} failed: {error_msg[:80]}...")
-            
             if '429' in error_msg or 'RESOURCE_EXHAUSTED' in error_msg:
                 if attempt < max_attempts - 1:
-                    wait_time = (attempt + 1) * 10  # 10s, 20s
+                    wait_time = (attempt + 1) * 10
                     print(f"⏳ Rate limited. Waiting {wait_time} seconds...")
                     import time
                     time.sleep(wait_time)
@@ -196,173 +151,6 @@ Assistant:"""
     
     return ("I'm having trouble answering right now. "
             "Please explore our Learning Hub or try again in a moment.")
-    """Generate response with conversation memory and automatic retry."""
-    
-    # --- Build the prompt (your existing code) ---
-    history_text = ""
-    for entry in history:
-        role = "User" if entry['role'] == 'user' else "Assistant"
-        history_text += f"{role}: {entry['content']}\n"
-    
-    prompt = f"""
-You are a digital rights assistant for Uganda called "Digital Rights Navigator".
-
-Your purpose:
-- Provide comprehensive, detailed, and educational answers about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda.
-- Your answers should be well-structured, include examples, legal references (like the Data Protection Act), and practical advice.
-- Keep responses detailed but clear (150-250 words).
-- Write in paragraphs with proper spacing for readability.
-
-IMPORTANT RULES:
-- ONLY answer questions about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda.
-- For questions about politics, sports, entertainment, or general knowledge, politely say: "I'm sorry, I'm only trained to answer questions about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda. Please ask me about those topics!"
-- Always mention Ugandan context (laws, institutions like NITA-U, UCC, CERT-UG, etc.).
-- Use line breaks between paragraphs for readability.
-
-Conversation history:
-{history_text}
-
-User: {user_message}
-
-Assistant:"""
-    
-    # --- RETRY LOOP ---
-    max_attempts = 3
-    for attempt in range(max_attempts):
-        try:
-            print(f"🔵 Attempt {attempt + 1}: Sending to Gemini...")
-            
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt
-            )
-            
-            raw_response = response.text
-            
-            # Format for readability
-            formatted_response = raw_response.replace('\n\n', '<br><br>').replace('\n', '<br>')
-            
-            print(f"🟢 Gemini response received!")
-            return formatted_response
-            
-        except Exception as e:
-            error_msg = str(e)
-            print(f"🔴 Attempt {attempt + 1} failed: {error_msg[:100]}...")
-            
-            # Check if it's a rate limit error (429)
-            if '429' in error_msg or 'RESOURCE_EXHAUSTED' in error_msg:
-                if attempt < max_attempts - 1:
-                    # Wait before retrying (increases with each attempt)
-                    wait_time = (attempt + 1) * 5  # 5s, 10s, 15s
-                    print(f"⏳ Rate limited. Waiting {wait_time} seconds...")
-                    import time
-                    time.sleep(wait_time)
-                else:
-                    # Last attempt failed - show friendly message
-                    return ("I'm currently handling a high volume of requests. "
-                            "Please wait a moment and try again. "
-                            "In the meantime, check out our Learning Hub for resources on "
-                            "digital rights, AI policy, and cybersecurity in Uganda!")
-            else:
-                # Other error - use FAQ fallback
-                return get_faq_fallback(user_message)
-    
-    # If all retries fail, fallback to FAQ
-    return get_faq_fallback(user_message)
-    """Generate response with conversation memory."""
-    try:
-        # Build prompt with history
-        history_text = ""
-        for entry in history:
-            role = "User" if entry['role'] == 'user' else "Assistant"
-            history_text += f"{role}: {entry['content']}\n"
-        
-        prompt = f"""
-You are a digital rights assistant for Uganda called "Digital Rights Navigator".
-
-Your purpose:
-- Provide comprehensive, detailed, and educational answers about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda.
-- Your answers should be well-structured, include examples, legal references (like the Data Protection Act), and practical advice.
-- Keep responses detailed but clear (150-250 words).
-- Write in paragraphs with proper spacing for readability.
-
-IMPORTANT RULES:
-- ONLY answer questions about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda.
-- For questions about politics, sports, entertainment, or general knowledge, politely say: "I'm sorry, I'm only trained to answer questions about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda. Please ask me about those topics!"
-- Always mention Ugandan context (laws, institutions like NITA-U, UCC, CERT-UG, etc.).
-- Use line breaks between paragraphs for readability.
-
-Conversation history:
-{history_text}
-
-User: {user_message}
-
-Assistant:"""
-        
-        print(f"🔵 Sending to Gemini: {user_message}")
-        
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt
-        )
-        
-        raw_response = response.text
-        
-        # --- FORMAT FOR READABILITY ---
-        # Convert newlines to HTML line breaks
-        formatted_response = raw_response.replace('\n\n', '<br><br>').replace('\n', '<br>')
-        
-        print(f"🟢 Gemini response received and formatted")
-        return formatted_response
-        
-    except Exception as e:
-        print(f"🔴 Gemini error: {e}")
-        import traceback
-        traceback.print_exc()
-        return get_faq_fallback(user_message)
-    """Generate response with conversation memory."""
-    try:
-        # --- Build a simple prompt with history ---
-        history_text = ""
-        for entry in history:
-            role = "User" if entry['role'] == 'user' else "Assistant"
-            history_text += f"{role}: {entry['content']}\n"
-        
-        prompt = f"""
-You are a digital rights assistant for Uganda called "Digital Rights Navigator".
-
-Your purpose:
-- Provide comprehensive, detailed, and educational answers about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda.
-- Your answers should be well-structured, include examples, legal references (like the Data Protection Act), and practical advice.
-- Keep responses detailed but clear (150-250 words).
-
-IMPORTANT RULES:
-- ONLY answer questions about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda.
-- For questions about politics, sports, entertainment, or general knowledge, politely say: "I'm sorry, I'm only trained to answer questions about digital rights, internet governance, AI policy, data privacy, and cybersecurity in Uganda. Please ask me about those topics!"
-- Always mention Ugandan context (laws, institutions like NITA-U, UCC, CERT-UG, etc.).
-
-Conversation history:
-{history_text}
-
-User: {user_message}
-
-Assistant:"""
-        
-        print(f"🔵 Sending to Gemini: {user_message}")
-        
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt
-        )
-        
-        print(f"🟢 Gemini response received: {response.text[:50]}...")
-        return response.text
-        
-    except Exception as e:
-        print(f"🔴 Gemini error: {e}")
-        import traceback
-        traceback.print_exc()
-        return get_faq_fallback(user_message)
 
 @csrf_exempt
 def chat_api(request):
@@ -392,45 +180,9 @@ def chat_api(request):
             })
 
         except Exception as e:
-            # If everything fails, send a graceful error
             return JsonResponse({
                 'error': 'I\'m having trouble connecting. Please try again in a moment.'
             }, status=500)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            user_message = data.get('message', '').strip()
-            session_id = data.get('session_id')
-            if not user_message:
-                return JsonResponse({'error': 'Empty message'}, status=400)
-
-            # Get or create session
-            if session_id:
-                session, created = ChatSession.objects.get_or_create(session_id=session_id)
-            else:
-                session = ChatSession.objects.create(session_id=str(uuid.uuid4()))
-
-            # Save user message
-            ChatMessage.objects.create(session=session, message=user_message, is_bot=False)
-
-            # Get history
-            history = get_conversation_history(session)
-
-            # Get bot response with memory
-            bot_response = get_gemini_response_with_memory(user_message, history)
-
-            # Save bot response
-            ChatMessage.objects.create(session=session, message=bot_response, is_bot=True)
-
-            return JsonResponse({
-                'response': bot_response,
-                'session_id': session.session_id
-            })
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
@@ -592,16 +344,12 @@ def register(request):
         return redirect('profile')
     return render(request, 'chatbot/register.html')
 
-
-
 def user_login(request):
     if request.user.is_authenticated:
         return redirect('profile')
-    
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
@@ -609,47 +357,16 @@ def user_login(request):
             return redirect('profile')
         else:
             messages.error(request, 'Invalid username or password.')
-    
     return render(request, 'chatbot/login.html')
 
 def user_logout(request):
-    """User logout view - clears old messages and shows logout confirmation."""
-    
-    # --- Clear all existing messages first ---
+    # Clear all messages
     storage = get_messages(request)
     for _ in storage:
-        pass  # This clears all messages
-    
-    # --- Log the user out ---
+        pass
     logout(request)
-    
-    # --- Add fresh logout message ---
     messages.success(request, 'You have been logged out successfully.')
-    
-    # --- Redirect to home ---
     return redirect('chat_home')
-    if request.user.is_authenticated:
-        return redirect('profile')
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            messages.success(request, f'Welcome back, {username}!')
-            return redirect('profile')
-        else:
-            messages.error(request, 'Invalid username or password.')
-    return render(request, 'chatbot/login.html')
-
-def user_logout(request):
-    """User logout view."""
-    logout(request)
-    messages.success(request, 'You have been logged out successfully.')
-    return redirect('chat_home')  # This goes to index.html
-    logout(request)
-    messages.success(request, 'You have been logged out.')
-    return redirect('login')
 
 @login_required
 def profile(request):
