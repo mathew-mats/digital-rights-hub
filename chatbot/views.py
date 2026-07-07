@@ -16,10 +16,14 @@ from google import genai
 
 from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion, QuizAttempt, QuizResponse
 
-# --- Configure Gemini ---
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
-MODEL_NAME = 'gemini-2.5-flash'
+# --- Configure Gemini (Lazy Loading) ---
+def get_gemini_client():
+    """Lazy load Gemini client only when needed."""
+    if not hasattr(settings, '_gemini_client'):
+        settings._gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return settings._gemini_client
 
+MODEL_NAME = 'gemini-2.5-flash'
 # --- Memory Limit ---
 MAX_HISTORY = 10
 
@@ -101,6 +105,19 @@ def get_faq_fallback(user_message):
             "Please explore our Learning Resources or contact the Uganda Youth Internet Governance Forum (UYIGF).")
 
 def get_gemini_response_with_memory(user_message, history):
+    try:
+        # Use lazy-loaded client
+        client = get_gemini_client()
+        
+        # ... rest of your code ...
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=full_context
+        )
+        return response.text
+    except Exception as e:
+        print(f"Gemini error: {e}")
+        return get_faq_fallback(user_message)
     """Smart hybrid: FAQ first, Gemini fallback."""
     
     # --- STEP 1: CHECK FAQ DATABASE FIRST ---
