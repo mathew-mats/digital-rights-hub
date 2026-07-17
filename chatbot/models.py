@@ -119,7 +119,7 @@ class QuizQuestion(models.Model):
 class QuizAttempt(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='attempts')
-    session_id = models.CharField(max_length=100, blank=True)
+    session_id = models.CharField(max_length=100, blank=True, null=True)
     score = models.IntegerField(default=0)
     total_questions = models.IntegerField(default=0)
     passed = models.BooleanField(default=False)

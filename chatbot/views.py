@@ -12,18 +12,13 @@ import json
 import uuid
 import re
 import traceback
-from google import genai
 
 from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion, QuizAttempt, QuizResponse
 
-# --- Configure Gemini (Lazy Loading) ---
-def get_gemini_client():
-    """Lazy load Gemini client only when needed."""
-    if not hasattr(settings, '_gemini_client'):
-        settings._gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    return settings._gemini_client
+# --- NO GEMINI CLIENT AT STARTUP! ---
+# Gemini will be loaded ONLY when needed in the function below
 
-MODEL_NAME = 'gemini-2.5-flash'
+MODEL_NAME = 'gemini-2.0-flash'
 MAX_HISTORY = 10
 
 # --- Synonym dictionary for fallback ---
@@ -51,7 +46,6 @@ def get_conversation_history(session):
 
 def get_faq_fallback(user_message):
     """Fallback FAQ matching."""
-    print(f"🟡 Using FAQ fallback for: {user_message}")
     clean_msg = re.sub(r'[^\w\s]', '', user_message.lower())
     user_words = set(clean_msg.split())
     expanded_words = set(user_words)
@@ -78,23 +72,25 @@ def get_faq_fallback(user_message):
             "Please explore our Learning Resources or contact the Uganda Youth Internet Governance Forum (UYIGF).")
 
 def get_gemini_response_with_memory(user_message, history):
-    """Smart hybrid: FAQ first, Gemini fallback."""
+    """Smart hybrid: FAQ first, Gemini fallback (lazy loaded)."""
     # STEP 1: CHECK FAQ DATABASE FIRST
     faq_answer = get_faq_fallback(user_message)
     if faq_answer and "I don't have a specific answer" not in faq_answer:
-        print(f"✅ Using FAQ answer for: {user_message}")
         return faq_answer
 
-    # STEP 2: NO FAQ MATCH - TRY GEMINI
-    print(f"🔵 No FAQ match. Trying Gemini for: {user_message}")
-    
-    # Build the prompt
-    history_text = ""
-    for entry in history:
-        role = "User" if entry['role'] == 'user' else "Assistant"
-        history_text += f"{role}: {entry['content']}\n"
-    
-    prompt = f"""
+    # STEP 2: NO FAQ MATCH - TRY GEMINI (Lazy load)
+    try:
+        # --- Lazy load Gemini ONLY when needed ---
+        from google import genai
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        
+        # Build the prompt
+        history_text = ""
+        for entry in history:
+            role = "User" if entry['role'] == 'user' else "Assistant"
+            history_text += f"{role}: {entry['content']}\n"
+        
+        prompt = f"""
 You are a digital rights assistant for Uganda called "Digital Rights Navigator".
 
 Your purpose:
@@ -115,42 +111,20 @@ Conversation history:
 User: {user_message}
 
 Assistant:"""
-    
-    # STEP 3: RETRY LOGIC FOR GEMINI
-    max_attempts = 3
-    client = get_gemini_client()
-    for attempt in range(max_attempts):
-        try:
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt
-            )
-            raw_response = response.text
-            formatted_response = raw_response.replace('\n\n', '<br><br>').replace('\n', '<br>')
-            print(f"🟢 Gemini response received!")
-            return formatted_response
-            
-        except Exception as e:
-            error_msg = str(e)
-            print(f"🔴 Attempt {attempt + 1} failed: {error_msg[:80]}...")
-            if '429' in error_msg or 'RESOURCE_EXHAUSTED' in error_msg:
-                if attempt < max_attempts - 1:
-                    wait_time = (attempt + 1) * 10
-                    print(f"⏳ Rate limited. Waiting {wait_time} seconds...")
-                    import time
-                    time.sleep(wait_time)
-                else:
-                    return ("I'm currently handling a high volume of requests. "
-                            "Please wait a moment and try again. "
-                            "In the meantime, check out our Learning Hub for resources on "
-                            "digital rights, AI policy, and cybersecurity in Uganda!")
-            else:
-                return ("I couldn't find an answer to that question. "
-                        "Please check our Learning Hub for more information, "
-                        "or try rephrasing your question.")
-    
-    return ("I'm having trouble answering right now. "
-            "Please explore our Learning Hub or try again in a moment.")
+        
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt
+        )
+        raw_response = response.text
+        formatted_response = raw_response.replace('\n\n', '<br><br>').replace('\n', '<br>')
+        return formatted_response
+        
+    except Exception as e:
+        print(f"Gemini error: {e}")
+        return ("I'm currently having trouble connecting to my AI service. "
+                "Please check our Learning Hub for resources on "
+                "digital rights, AI policy, and cybersecurity in Uganda!")
 
 @csrf_exempt
 def chat_api(request):
@@ -274,8 +248,14 @@ def quiz_take(request, quiz_id):
             total = questions.count()
             if total == 0:
                 return HttpResponse("No questions in this quiz.", status=400)
+            
+            # --- FIX: Ensure session exists ---
+            if not request.session.session_key:
+                request.session.create()
+            
             user = request.user if request.user.is_authenticated else None
             session_id = request.session.session_key if not user else ''
+            
             attempt = QuizAttempt.objects.create(
                 quiz=quiz,
                 user=user,
@@ -284,6 +264,7 @@ def quiz_take(request, quiz_id):
                 total_questions=total,
                 passed=False
             )
+            # ... rest of the function
             for question in questions:
                 answer_key = f'question_{question.id}'
                 user_answer = request.POST.get(answer_key)
@@ -360,7 +341,6 @@ def user_login(request):
     return render(request, 'chatbot/login.html')
 
 def user_logout(request):
-    # Clear all messages
     storage = get_messages(request)
     for _ in storage:
         pass
