@@ -10,7 +10,7 @@ urlpatterns = [
     # All chatbot URLs (defined in chatbot/urls.py) will be at the root
     # For example, /api/ will be handled by chatbot.views.chat_api
     path('', include('chatbot.urls')),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

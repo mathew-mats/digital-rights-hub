@@ -1,8 +1,21 @@
 from django.contrib import admin
 from .models import (
     FAQ, ChatSession, ChatMessage, Resource,
-    Quiz, QuizQuestion, QuizAttempt, QuizResponse
+    Quiz, QuizQuestion, QuizAttempt, QuizResponse, Profile,
 )
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'get_avatar_preview', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('user__username', 'user__email')
+    
+    def get_avatar_preview(self, obj):
+        if obj.avatar:
+            return f'<img src="{obj.avatar.url}" width="50" height="50" style="border-radius:50%;" />'
+        return 'No avatar'
+    get_avatar_preview.allow_tags = True
+    get_avatar_preview.short_description = 'Avatar'
 
 @admin.register(FAQ)
 class FAQAdmin(admin.ModelAdmin):

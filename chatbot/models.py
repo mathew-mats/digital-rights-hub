@@ -1,5 +1,37 @@
 from django.db import models
 from django.contrib.auth.models import User
+from PIL import Image
+import os
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.png', blank=True, null=True)
+    bio = models.TextField(max_length=500, blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
+    
+    def get_avatar_url(self):
+        """Get the avatar URL or return default if not set."""
+        if self.avatar and hasattr(self.avatar, 'url'):
+            return self.avatar.url
+        return f'https://ui-avatars.com/api/?name={self.user.username}&background=4a9eff&color=fff&size=100'
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Resize image if it exists
+        if self.avatar and self.avatar.path:
+            try:
+                img = Image.open(self.avatar.path)
+                if img.height > 300 or img.width > 300:
+                    output_size = (300, 300)
+                    img.thumbnail(output_size)
+                    img.save(self.avatar.path)
+            except Exception:
+                pass
 
 # --- FAQ ---
 class FAQ(models.Model):
@@ -142,3 +174,13 @@ class QuizResponse(models.Model):
     is_correct = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.question.question_text[:30]} - {'Correct' if self.is_correct else 'Wrong'}"
+
+# Admin model
+
+class AdminProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    is_super_admin = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Admin: {self.user.username}"

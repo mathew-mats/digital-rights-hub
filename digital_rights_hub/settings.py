@@ -145,3 +145,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings (for future API access)
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development
+
+# Media files (User uploaded files)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static', 'media')
+
+# Maximum upload size
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2097152  # 2MB

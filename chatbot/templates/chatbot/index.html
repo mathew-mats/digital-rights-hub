@@ -767,30 +767,35 @@
         </nav>
         
         <div class="sidebar-footer">
-            <div class="user-info">
-                {% if user.is_authenticated %}
-                    <div class="user-avatar">{{ user.username|make_list|first|upper }}</div>
-                    <div>
-                        <div class="user-name">{{ user.username }}</div>
-                        <div class="user-role">
-                            <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
-                            <span class="sep">|</span>
-                            <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="user-avatar guest"><i class="fas fa-user" style="font-size:18px;"></i></div>
-                    <div>
-                        <div class="user-name">Guest</div>
-                        <div class="user-role">
-                            <a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Login</a>
-                            <span class="sep">|</span>
-                            <a href="{% url 'register' %}"><i class="fas fa-user-plus"></i> Register</a>
-                        </div>
-                    </div>
-                {% endif %}
+    <div class="user-info">
+        {% if user.is_authenticated %}
+            <!-- Check if profile exists and has avatar -->
+            {% if user.profile.avatar %}
+                <img src="{{ user.profile.avatar.url }}" alt="Avatar" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1);flex-shrink:0;">
+            {% else %}
+                <div class="user-avatar">{{ user.username|make_list|first|upper }}</div>
+            {% endif %}
+            <div>
+                <div class="user-name">{{ user.username }}</div>
+                <div class="user-role">
+                    <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
+                    <span class="sep">|</span>
+                    <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
             </div>
-        </div>
+        {% else %}
+            <div class="user-avatar guest"><i class="fas fa-user" style="font-size:18px;"></i></div>
+            <div>
+                <div class="user-name">Guest</div>
+                <div class="user-role">
+                    <a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Login</a>
+                    <span class="sep">|</span>
+                    <a href="{% url 'register' %}"><i class="fas fa-user-plus"></i> Register</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
     </aside>
 
     <!-- Mobile overlay -->

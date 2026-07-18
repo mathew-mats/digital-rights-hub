@@ -13,7 +13,7 @@ import uuid
 import re
 import traceback
 
-from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion, QuizAttempt, QuizResponse
+from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion, QuizAttempt, QuizResponse, Profile
 
 # --- NO GEMINI CLIENT AT STARTUP! ---
 # Gemini will be loaded ONLY when needed in the function below
@@ -364,3 +364,283 @@ def profile(request):
         'avg_score': avg_score,
     }
     return render(request, 'chatbot/profile.html', context)
+
+# ---------- ADMIN DASHBOARD VIEWS ----------
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404
+
+def admin_login(request):
+    """Admin login page."""
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('admin_dashboard')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None and user.is_staff:
+            login(request, user)
+            return redirect('admin_dashboard')
+        else:
+            messages.error(request, 'Invalid credentials or not an admin.')
+    
+    return render(request, 'chatbot/admin_login.html')
+
+@staff_member_required
+def admin_dashboard(request):
+    """Admin dashboard with stats."""
+    context = {
+        'total_resources': Resource.objects.count(),
+        'total_quizzes': Quiz.objects.count(),
+        'total_users': User.objects.count(),
+        'total_faqs': FAQ.objects.count(),
+        'recent_resources': Resource.objects.order_by('-created_at')[:5],
+        'recent_users': User.objects.order_by('-date_joined')[:5],
+    }
+    return render(request, 'chatbot/admin_dashboard.html', context)
+
+@staff_member_required
+def admin_resources(request):
+    """Manage resources."""
+    resources = Resource.objects.all().order_by('-created_at')
+    if request.method == 'POST':
+        # Add new resource
+        title = request.POST.get('title')
+        summary = request.POST.get('summary')
+        content = request.POST.get('content')
+        category = request.POST.get('category')
+        resource_type = request.POST.get('resource_type')
+        url = request.POST.get('url')
+        
+        Resource.objects.create(
+            title=title,
+            summary=summary,
+            content=content,
+            category=category,
+            resource_type=resource_type,
+            url=url,
+            is_published=True
+        )
+        messages.success(request, 'Resource added successfully!')
+        return redirect('admin_resources')
+    
+    context = {
+        'resources': resources,
+        'categories': Resource.CATEGORY_CHOICES,
+        'resource_types': Resource.RESOURCE_TYPES,
+    }
+    return render(request, 'chatbot/admin_resources.html', context)
+
+@staff_member_required
+def admin_delete_resource(request, resource_id):
+    """Delete a resource."""
+    resource = get_object_or_404(Resource, id=resource_id)
+    resource.delete()
+    messages.success(request, 'Resource deleted successfully!')
+    return redirect('admin_resources')
+
+@staff_member_required
+def admin_quizzes(request):
+    """Manage quizzes."""
+    quizzes = Quiz.objects.all().order_by('-created_at')
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        category = request.POST.get('category')
+        difficulty = request.POST.get('difficulty')
+        passing_score = request.POST.get('passing_score', 70)
+        
+        Quiz.objects.create(
+            title=title,
+            description=description,
+            category=category,
+            difficulty=difficulty,
+            passing_score=passing_score,
+            is_published=True
+        )
+        messages.success(request, 'Quiz added successfully!')
+        return redirect('admin_quizzes')
+    
+    context = {
+        'quizzes': quizzes,
+        'categories': Quiz.CATEGORY_CHOICES,
+        'difficulties': Quiz._meta.get_field('difficulty').choices,
+    }
+    return render(request, 'chatbot/admin_quizzes.html', context)
+
+@staff_member_required
+def admin_delete_quiz(request, quiz_id):
+    """Delete a quiz."""
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    quiz.delete()
+    messages.success(request, 'Quiz deleted successfully!')
+    return redirect('admin_quizzes')
+
+@staff_member_required
+def admin_faqs(request):
+    """Manage FAQs."""
+    faqs = FAQ.objects.all().order_by('-created_at')
+    if request.method == 'POST':
+        question = request.POST.get('question')
+        answer = request.POST.get('answer')
+        category = request.POST.get('category')
+        
+        FAQ.objects.create(
+            question=question,
+            answer=answer,
+            category=category
+        )
+        messages.success(request, 'FAQ added successfully!')
+        return redirect('admin_faqs')
+    
+    context = {
+        'faqs': faqs,
+        'categories': FAQ.CATEGORY_CHOICES,
+    }
+    return render(request, 'chatbot/admin_faqs.html', context)
+
+@staff_member_required
+def admin_delete_faq(request, faq_id):
+    """Delete an FAQ."""
+    faq = get_object_or_404(FAQ, id=faq_id)
+    faq.delete()
+    messages.success(request, 'FAQ deleted successfully!')
+    return redirect('admin_faqs')
+
+    # ---------- ADMIN QUIZ QUESTIONS ----------
+
+@staff_member_required
+def admin_quiz_detail(request, quiz_id):
+    """View quiz details and manage its questions."""
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    questions = QuizQuestion.objects.filter(quiz=quiz).order_by('order')
+    
+    if request.method == 'POST':
+        # Add new question
+        question_text = request.POST.get('question_text')
+        option_a = request.POST.get('option_a')
+        option_b = request.POST.get('option_b')
+        option_c = request.POST.get('option_c')
+        option_d = request.POST.get('option_d')
+        correct_answer = request.POST.get('correct_answer')
+        order = request.POST.get('order', 0)
+        
+        if question_text and option_a and option_b and option_c and option_d:
+            QuizQuestion.objects.create(
+                quiz=quiz,
+                question_text=question_text,
+                option_a=option_a,
+                option_b=option_b,
+                option_c=option_c,
+                option_d=option_d,
+                correct_answer=correct_answer,
+                order=questions.count()
+            )
+            messages.success(request, 'Question added successfully!')
+            return redirect('admin_quiz_detail', quiz_id=quiz.id)
+        else:
+            messages.error(request, 'Please fill in all fields.')
+    
+    context = {
+        'quiz': quiz,
+        'questions': questions,
+        'question_count': questions.count(),
+    }
+    return render(request, 'chatbot/admin_quiz_detail.html', context)
+
+@staff_member_required
+def admin_delete_question(request, question_id):
+    """Delete a question from a quiz."""
+    question = get_object_or_404(QuizQuestion, id=question_id)
+    quiz_id = question.quiz.id
+    question.delete()
+    messages.success(request, 'Question deleted successfully!')
+    return redirect('admin_quiz_detail', quiz_id=quiz_id)
+
+@login_required
+def edit_profile(request):
+    """Edit user profile (avatar, bio, location)."""
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        # Update bio and location
+        bio = request.POST.get('bio', '')
+        location = request.POST.get('location', '')
+        profile.bio = bio
+        profile.location = location
+        
+        # Update avatar if uploaded
+        if 'avatar' in request.FILES:
+            # Delete old avatar if it exists and is not default
+            if profile.avatar and profile.avatar.name != 'avatars/default.png':
+                try:
+                    profile.avatar.delete(save=False)
+                except:
+                    pass
+            profile.avatar = request.FILES['avatar']
+        
+        profile.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
+    
+    context = {
+        'profile': profile,
+    }
+    return render(request, 'chatbot/edit_profile.html', context)
+
+@login_required
+def delete_avatar(request):
+    """Remove user avatar."""
+    profile = request.user.profile
+    if profile.avatar and profile.avatar.name != 'avatars/default.png':
+        try:
+            profile.avatar.delete(save=False)
+        except:
+            pass
+        profile.avatar = None
+        profile.save()
+        messages.success(request, 'Avatar removed successfully!')
+    return redirect('edit_profile')
+
+# ---------- ADMIN USER MANAGEMENT ----------
+from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
+
+@staff_member_required
+def admin_users(request):
+    """View all registered users with their activity."""
+    users = User.objects.all().order_by('-date_joined')
+    
+    # Get user stats
+    total_users = users.count()
+    active_users = users.filter(last_login__gte=timezone.now() - timedelta(days=30)).count()
+    new_users_this_week = users.filter(date_joined__gte=timezone.now() - timedelta(days=7)).count()
+    
+    context = {
+        'users': users,
+        'total_users': total_users,
+        'active_users': active_users,
+        'new_users_this_week': new_users_this_week,
+    }
+    return render(request, 'chatbot/admin_users.html', context)
+
+@staff_member_required
+def admin_toggle_user_status(request, user_id):
+    """Toggle user active status (activate/deactivate)."""
+    user = get_object_or_404(User, id=user_id)
+    user.is_active = not user.is_active
+    user.save()
+    status = "activated" if user.is_active else "deactivated"
+    messages.success(request, f'User {user.username} has been {status}.')
+    return redirect('admin_users')
+
+@staff_member_required
+def admin_delete_user(request, user_id):
+    """Delete a user account."""
+    user = get_object_or_404(User, id=user_id)
+    username = user.username
+    user.delete()
+    messages.success(request, f'User {username} has been deleted.')
+    return redirect('admin_users')
