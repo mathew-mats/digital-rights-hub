@@ -192,6 +192,7 @@
 
         <form method="POST">
             {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.GET.next }}">
             <div class="form-group">
                 <label><i class="fas fa-user" style="color:#4a9eff; margin-right:6px;"></i> Username</label>
                 <input type="text" name="username" placeholder="Enter your username" required>

@@ -12,6 +12,10 @@ import json
 import uuid
 import re
 import traceback
+# ---------- ADMIN USER MANAGEMENT ----------
+from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
 
 from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion, QuizAttempt, QuizResponse, Profile
 
@@ -381,13 +385,30 @@ def admin_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None and user.is_staff:
             login(request, user)
+            # Redirect to 'next' if present, else dashboard
+            next_url = request.GET.get('next') or request.POST.get('next') or 'admin_dashboard'
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Invalid credentials or not an admin.')
+    
+    return render(request, 'chatbot/admin_login.html')
+    """Admin login page."""
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('admin_dashboard')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None and user.is_staff:
+            login(request, user)
             return redirect('admin_dashboard')
         else:
             messages.error(request, 'Invalid credentials or not an admin.')
     
     return render(request, 'chatbot/admin_login.html')
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_dashboard(request):
     """Admin dashboard with stats."""
     context = {
@@ -400,7 +421,7 @@ def admin_dashboard(request):
     }
     return render(request, 'chatbot/admin_dashboard.html', context)
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_resources(request):
     """Manage resources."""
     resources = Resource.objects.all().order_by('-created_at')
@@ -432,7 +453,7 @@ def admin_resources(request):
     }
     return render(request, 'chatbot/admin_resources.html', context)
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_delete_resource(request, resource_id):
     """Delete a resource."""
     resource = get_object_or_404(Resource, id=resource_id)
@@ -440,7 +461,7 @@ def admin_delete_resource(request, resource_id):
     messages.success(request, 'Resource deleted successfully!')
     return redirect('admin_resources')
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_quizzes(request):
     """Manage quizzes."""
     quizzes = Quiz.objects.all().order_by('-created_at')
@@ -469,7 +490,7 @@ def admin_quizzes(request):
     }
     return render(request, 'chatbot/admin_quizzes.html', context)
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_delete_quiz(request, quiz_id):
     """Delete a quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
@@ -477,7 +498,7 @@ def admin_delete_quiz(request, quiz_id):
     messages.success(request, 'Quiz deleted successfully!')
     return redirect('admin_quizzes')
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_faqs(request):
     """Manage FAQs."""
     faqs = FAQ.objects.all().order_by('-created_at')
@@ -500,7 +521,7 @@ def admin_faqs(request):
     }
     return render(request, 'chatbot/admin_faqs.html', context)
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_delete_faq(request, faq_id):
     """Delete an FAQ."""
     faq = get_object_or_404(FAQ, id=faq_id)
@@ -510,7 +531,7 @@ def admin_delete_faq(request, faq_id):
 
     # ---------- ADMIN QUIZ QUESTIONS ----------
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_quiz_detail(request, quiz_id):
     """View quiz details and manage its questions."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
@@ -549,7 +570,7 @@ def admin_quiz_detail(request, quiz_id):
     }
     return render(request, 'chatbot/admin_quiz_detail.html', context)
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_delete_question(request, question_id):
     """Delete a question from a quiz."""
     question = get_object_or_404(QuizQuestion, id=question_id)
@@ -603,12 +624,9 @@ def delete_avatar(request):
         messages.success(request, 'Avatar removed successfully!')
     return redirect('edit_profile')
 
-# ---------- ADMIN USER MANAGEMENT ----------
-from django.contrib.auth.models import User
-from django.utils import timezone
-from datetime import timedelta
 
-@staff_member_required
+
+@staff_member_required(login_url='admin_login')
 def admin_users(request):
     """View all registered users with their activity."""
     users = User.objects.all().order_by('-date_joined')
@@ -626,7 +644,7 @@ def admin_users(request):
     }
     return render(request, 'chatbot/admin_users.html', context)
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_toggle_user_status(request, user_id):
     """Toggle user active status (activate/deactivate)."""
     user = get_object_or_404(User, id=user_id)
@@ -636,7 +654,7 @@ def admin_toggle_user_status(request, user_id):
     messages.success(request, f'User {user.username} has been {status}.')
     return redirect('admin_users')
 
-@staff_member_required
+@staff_member_required(login_url='admin_login')
 def admin_delete_user(request, user_id):
     """Delete a user account."""
     user = get_object_or_404(User, id=user_id)
