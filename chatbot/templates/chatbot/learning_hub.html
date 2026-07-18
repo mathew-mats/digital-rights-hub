@@ -17,8 +17,11 @@
             width: 280px; min-width: 280px; 
             background: linear-gradient(180deg, #0f1724 0%, #1a2332 100%);
             color: #ffffff; padding: 32px 24px; display: flex; flex-direction: column; flex-shrink: 0; 
-            height: 100vh; overflow-y: auto; position: relative;
+            height: 100vh; overflow: hidden; position: sticky; top: 0; align-self: flex-start;
         }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
         .sidebar::after {
             content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%;
             background: radial-gradient(circle at 70% 20%, rgba(74,158,255,0.06) 0%, transparent 70%);
@@ -70,7 +73,49 @@
         .sidebar-footer .user-role a:hover { color: #ffffff; }
         .sidebar-footer .user-role .sep { color: #3a5a7a; margin: 0 4px; }
         
-        /* Main Content */
+        /* Hamburger Menu */
+        .hamburger-btn {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 8px;
+            z-index: 1001;
+        }
+        .hamburger-btn span { display: block; width: 28px; height: 3px; background: #1a2332; border-radius: 4px; transition: all 0.3s ease; }
+        .hamburger-btn:hover span { background: #4a9eff; }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .sidebar-overlay.active { display: block; opacity: 1; }
+
+        .sidebar-close-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 8px;
+            margin-left: auto;
+            transition: transform 0.3s ease;
+            width: fit-content;
+        }
+        .sidebar-close-btn:hover { transform: rotate(90deg); }
+        
         .main-content { flex: 1; display: flex; flex-direction: column; background: #f8fafc; height: 100vh; overflow: hidden; min-width: 0; }
         .main-header { 
             padding: 16px 32px; background: rgba(255,255,255,0.8); backdrop-filter: blur(20px);
@@ -127,11 +172,7 @@
             display: flex; flex-direction: column;
             box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
-        .resource-card:hover { 
-            transform: translateY(-6px); 
-            box-shadow: 0 12px 40px rgba(0,0,0,0.08); 
-            border-color: #4a9eff;
-        }
+        .resource-card:hover { transform: translateY(-6px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); border-color: #4a9eff; }
         .resource-card .card-badge { 
             display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 11px; 
             font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; align-self: flex-start; margin-bottom: 12px;
@@ -154,44 +195,52 @@
         .empty-state i { font-size: 48px; color: #d0d7e2; margin-bottom: 16px; display: block; }
         .empty-state h3 { color: #1a2332; font-weight: 600; margin-bottom: 8px; }
         
+        @media (max-width: 1024px) {
+            .sidebar { width: 240px; min-width: 240px; }
+        }
+
         @media (max-width: 768px) {
-            .app-container { flex-direction: column; }
-            .sidebar { width: 100%; min-width: unset; height: auto; max-height: 70px; padding: 12px 20px; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; overflow: visible; background: #0f1724; }
-            .sidebar::after { display: none; }
-            .sidebar-brand { margin-bottom: 0; display: flex; align-items: center; gap: 12px; }
-            .sidebar-brand .logo-icon .icon-wrap { width: 36px; height: 36px; font-size: 16px; }
-            .sidebar-brand h1 { font-size: 17px; }
-            .sidebar-brand .subtitle { display: none; }
-            .sidebar-nav { display: none; }
-            .sidebar-footer { display: none; }
-            .main-content { height: calc(100vh - 70px); }
+            .hamburger-btn { display: flex; }
+            .sidebar {
+                position: fixed; top: 0; left: -300px; width: 280px; height: 100vh;
+                z-index: 1000; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 0 40px rgba(0,0,0,0.2); border-radius: 0; padding-top: 20px;
+                padding-bottom: 20px; overflow-y: auto; min-width: unset;
+            }
+            .sidebar.open { left: 0; }
+            .sidebar-close-btn { display: block; position: absolute; top: 16px; right: 20px; }
+            .sidebar-brand { margin-top: 30px; margin-bottom: 30px; }
+            .sidebar-nav { margin-top: 20px; }
+            .sidebar-footer { margin-top: auto; padding-bottom: 20px; }
+            .no-scroll { overflow: hidden; }
+            .main-content { height: 100vh; width: 100%; max-width: 100%; }
             .main-header { padding: 14px 20px; }
             .main-header h2 { font-size: 16px; }
             .content-area { padding: 16px 20px; }
             .resources-grid { grid-template-columns: 1fr; }
             .filters-bar .search-box input { width: 120px; }
         }
+
         @media (max-width: 480px) {
-            .sidebar { max-height: 60px; padding: 10px 16px; }
-            .sidebar-brand .logo-icon .icon-wrap { width: 32px; height: 32px; font-size: 14px; }
-            .sidebar-brand h1 { font-size: 15px; }
-            .main-content { height: calc(100vh - 60px); }
+            .sidebar { width: 100%; max-width: 320px; left: -330px; }
+            .sidebar.open { left: 0; }
             .main-header { padding: 10px 16px; }
+            .main-header h2 { font-size: 14px; }
             .content-area { padding: 12px 16px; }
             .filters-bar { flex-direction: column; align-items: stretch; }
             .filters-bar .search-box { margin-left: 0; }
             .filters-bar .search-box input { width: 100%; }
+            .hamburger-btn span { width: 22px; height: 2.5px; }
         }
     </style>
 </head>
 <body>
 <div class="app-container">
-    <aside class="sidebar">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         <div class="sidebar-brand">
-            <div class="logo-icon">
-                <div class="icon-wrap"><i class="fas fa-shield-alt"></i></div>
-                <h1>Digital Rights Hub</h1>
-            </div>
+            <div class="logo-icon"><div class="icon-wrap"><i class="fas fa-shield-alt"></i></div><h1>Digital Rights Hub</h1></div>
             <div class="subtitle">Uganda Internet Governance</div>
         </div>
         <nav class="sidebar-nav">
@@ -199,6 +248,8 @@
             <a href="/" class="nav-item"><i class="fas fa-comment-dots"></i> Chat Assistant</a>
             <a href="/learn/" class="nav-item active"><i class="fas fa-graduation-cap"></i> Learning Hub</a>
             <a href="/quizzes/" class="nav-item"><i class="fas fa-trophy"></i> Quizzes <span class="badge">New</span></a>
+            <div style="margin-top:24px;"><div class="nav-label">Actions</div>
+            <a href="#" onclick="resetChat()" class="nav-item"><i class="fas fa-plus-circle"></i> New Chat</a></div>
         </nav>
         <div class="sidebar-footer">
             <div class="user-info">
@@ -226,9 +277,14 @@
             </div>
         </div>
     </aside>
+    
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <main class="main-content">
         <header class="main-header">
+            <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
             <h2><i class="fas fa-graduation-cap"></i> Learning Hub</h2>
             <div class="header-actions"><span class="status"><span class="dot"></span><span>Online</span></span></div>
         </header>
@@ -277,5 +333,27 @@
         </div>
     </main>
 </div>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+    document.body.classList.toggle('no-scroll');
+}
+document.querySelector('.sidebar-overlay').addEventListener('click', function() {
+    if (document.getElementById('sidebar').classList.contains('open')) { toggleSidebar(); }
+});
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('open')) { toggleSidebar(); }
+    }
+});
+function resetChat() {
+    window.location.href = '/';
+}
+</script>
 </body>
 </html>

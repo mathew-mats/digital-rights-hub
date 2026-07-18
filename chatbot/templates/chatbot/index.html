@@ -20,145 +20,65 @@
         .app-container { width: 100vw; height: 100vh; background: #ffffff; display: flex; overflow: hidden; }
         
         /* ============================================
-           SIDEBAR
+           SIDEBAR (FIXED ON DESKTOP)
            ============================================ */
         .sidebar { 
-            width: 280px; 
-            min-width: 280px; 
+            width: 280px; min-width: 280px; 
             background: linear-gradient(180deg, #0f1724 0%, #1a2332 100%);
-            color: #ffffff; 
-            padding: 32px 24px; 
-            display: flex; 
-            flex-direction: column; 
-            flex-shrink: 0; 
-            height: 100vh; 
-            overflow-y: auto;
-            position: relative;
+            color: #ffffff; padding: 32px 24px; display: flex; flex-direction: column; flex-shrink: 0; 
+            height: 100vh; overflow: hidden; position: sticky; top: 0; align-self: flex-start;
         }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
         .sidebar::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
+            content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%;
             background: radial-gradient(circle at 70% 20%, rgba(74,158,255,0.06) 0%, transparent 70%);
             pointer-events: none;
         }
-        
-        .sidebar-brand { 
-            margin-bottom: 40px; 
-            flex-shrink: 0;
-            position: relative;
-            z-index: 1;
-        }
+        .sidebar-brand { margin-bottom: 40px; flex-shrink: 0; position: relative; z-index: 1; }
         .sidebar-brand .logo-icon { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
         .sidebar-brand .logo-icon .icon-wrap {
-            width: 44px;
-            height: 44px;
+            width: 44px; height: 44px;
             background: linear-gradient(135deg, #4a9eff, #6c5ce7);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            color: white;
-            box-shadow: 0 8px 24px rgba(74,158,255,0.25);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            font-size: 22px; color: white; box-shadow: 0 8px 24px rgba(74,158,255,0.25);
         }
-        .sidebar-brand h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px; background: linear-gradient(135deg, #ffffff 60%, #8ab4f8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar-brand h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px; 
+            background: linear-gradient(135deg, #ffffff 60%, #8ab4f8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .sidebar-brand .subtitle { font-size: 12px; color: #5a7a9a; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; margin-left: 58px; }
         
-        .sidebar-nav { 
-            flex: 1; 
-            position: relative;
-            z-index: 1;
-        }
-        .sidebar-nav .nav-label { 
-            font-size: 10px; 
-            text-transform: uppercase; 
-            color: #4a6a8a; 
-            font-weight: 700; 
-            margin-bottom: 12px; 
-            letter-spacing: 1px;
-        }
+        .sidebar-nav { flex: 1; position: relative; z-index: 1; }
+        .sidebar-nav .nav-label { font-size: 10px; text-transform: uppercase; color: #4a6a8a; font-weight: 700; margin-bottom: 12px; letter-spacing: 1px; }
         .sidebar-nav .nav-item { 
-            display: flex; 
-            align-items: center; 
-            gap: 14px; 
-            padding: 12px 16px; 
-            border-radius: 12px; 
-            color: #7a9abb; 
-            text-decoration: none; 
-            font-size: 14px; 
-            font-weight: 500; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            cursor: pointer; 
-            margin-bottom: 4px;
-            position: relative;
+            display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 12px; 
+            color: #7a9abb; text-decoration: none; font-size: 14px; font-weight: 500; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; margin-bottom: 4px;
         }
-        .sidebar-nav .nav-item:hover { 
-            background: rgba(255,255,255,0.06); 
-            color: #ffffff; 
-            transform: translateX(4px);
-        }
-        .sidebar-nav .nav-item.active { 
-            background: rgba(74,158,255,0.12); 
-            color: #4a9eff; 
-            box-shadow: inset 3px 0 0 #4a9eff;
-        }
+        .sidebar-nav .nav-item:hover { background: rgba(255,255,255,0.06); color: #ffffff; transform: translateX(4px); }
+        .sidebar-nav .nav-item.active { background: rgba(74,158,255,0.12); color: #4a9eff; box-shadow: inset 3px 0 0 #4a9eff; }
         .sidebar-nav .nav-item.active i { color: #4a9eff; }
         .sidebar-nav .nav-item i { width: 22px; text-align: center; font-size: 16px; transition: all 0.3s; }
         .sidebar-nav .nav-item:hover i { transform: scale(1.1); }
         .sidebar-nav .nav-item .badge { 
-            margin-left: auto; 
-            background: linear-gradient(135deg, #4a9eff, #6c5ce7);
-            color: white; 
-            font-size: 10px; 
-            padding: 2px 12px; 
-            border-radius: 20px; 
-            font-weight: 700;
+            margin-left: auto; background: linear-gradient(135deg, #4a9eff, #6c5ce7);
+            color: white; font-size: 10px; padding: 2px 12px; border-radius: 20px; font-weight: 700;
             animation: pulse-badge 2s infinite;
         }
-        @keyframes pulse-badge {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(0.95); }
-        }
+        @keyframes pulse-badge { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.8;transform:scale(0.95);} }
         
-        .sidebar-footer { 
-            border-top: 1px solid rgba(255,255,255,0.06); 
-            padding-top: 20px; 
-            margin-top: auto; 
-            flex-shrink: 0;
-            position: relative;
-            z-index: 1;
-        }
+        .sidebar-footer { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 20px; margin-top: auto; flex-shrink: 0; position: relative; z-index: 1; }
         .sidebar-footer .user-info { display: flex; align-items: center; gap: 14px; }
         .sidebar-footer .user-avatar { 
-            width: 44px; 
-            height: 44px; 
-            border-radius: 50%; 
+            width: 44px; height: 44px; border-radius: 50%; 
             background: linear-gradient(135deg, #4a9eff, #6c5ce7);
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: 700; 
-            font-size: 18px; 
-            color: #ffffff;
-            box-shadow: 0 4px 16px rgba(74,158,255,0.3);
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; 
+            color: #ffffff; box-shadow: 0 4px 16px rgba(74,158,255,0.3); flex-shrink: 0;
         }
-        .sidebar-footer .user-avatar.guest {
-            background: #2a3a4e;
-            box-shadow: none;
-        }
+        .sidebar-footer .user-avatar.guest { background: #2a3a4e; box-shadow: none; }
         .sidebar-footer .user-name { font-size: 14px; font-weight: 600; color: #ffffff; }
         .sidebar-footer .user-role { font-size: 12px; }
-        .sidebar-footer .user-role a { 
-            color: #7a9abb; 
-            text-decoration: none; 
-            font-size: 12px; 
-            transition: color 0.2s;
-        }
+        .sidebar-footer .user-role a { color: #7a9abb; text-decoration: none; font-size: 12px; transition: color 0.2s; }
         .sidebar-footer .user-role a:hover { color: #ffffff; }
         .sidebar-footer .user-role .sep { color: #3a5a7a; margin: 0 4px; }
         
@@ -223,10 +143,61 @@
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(0.8); }
         }
-        .main-header .header-actions .session-id {
-            font-size: 11px;
-            color: #8a9bb5;
+
+        /* ============================================
+           HAMBURGER MENU (Mobile only)
+           ============================================ */
+        .hamburger-btn {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 8px;
+            z-index: 1001;
         }
+        .hamburger-btn span {
+            display: block;
+            width: 28px;
+            height: 3px;
+            background: #1a2332;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .hamburger-btn:hover span { background: #4a9eff; }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .sidebar-close-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 8px;
+            margin-left: auto;
+            transition: transform 0.3s ease;
+            width: fit-content;
+        }
+        .sidebar-close-btn:hover { transform: rotate(90deg); }
 
         /* ============================================
            TOAST / MESSAGES
@@ -243,40 +214,18 @@
             animation: slideDown 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             flex-shrink: 0;
         }
-
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        .toast-success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #86efac;
-        }
-
-        .toast-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-        }
-
-        .toast-info {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #93c5fd;
-        }
-
-        .toast-message i {
-            font-size: 18px;
-        }
-
-        /* Auto-hide toast after 4 seconds */
+        .toast-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .toast-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .toast-info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .toast-message i { font-size: 18px; }
         .toast-message {
             animation: slideDown 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
                        fadeOut 0.5s ease 4s forwards;
         }
-
         @keyframes fadeOut {
             to {
                 opacity: 0;
@@ -316,9 +265,7 @@
             border: 1px solid rgba(0,0,0,0.04);
             flex-shrink: 0;
         }
-        .hero-content {
-            flex: 1;
-        }
+        .hero-content { flex: 1; }
         .hero-badge {
             display: inline-block;
             background: rgba(74,158,255,0.1);
@@ -457,16 +404,8 @@
         .feature-card .feature-icon.purple { background: rgba(108,92,231,0.1); color: #6c5ce7; }
         .feature-card .feature-icon.orange { background: rgba(251,146,60,0.1); color: #fb923c; }
         .feature-card .feature-icon.red { background: rgba(239,68,68,0.1); color: #ef4444; }
-        .feature-card .feature-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a2332;
-        }
-        .feature-card .feature-desc {
-            font-size: 11px;
-            color: #8a9bb5;
-            margin-top: 2px;
-        }
+        .feature-card .feature-title { font-size: 13px; font-weight: 600; color: #1a2332; }
+        .feature-card .feature-desc { font-size: 11px; color: #8a9bb5; margin-top: 2px; }
 
         /* ============================================
            QUICK QUESTIONS
@@ -689,43 +628,62 @@
         }
         .chat-input .input-wrapper .btn-send:active { transform: scale(0.98); }
         .chat-input .input-wrapper .btn-send i { font-size: 15px; }
-        
+
         /* ============================================
-           RESPONSIVE
+           RESPONSIVE - MOBILE
            ============================================ */
+        @media (max-width: 1024px) {
+            .sidebar { width: 240px; min-width: 240px; }
+        }
+
         @media (max-width: 768px) {
-            .app-container { flex-direction: column; }
-            .sidebar { 
-                width: 100%; 
-                min-width: unset; 
-                height: auto; 
-                max-height: 70px; 
-                padding: 12px 20px; 
-                flex-direction: row; 
-                flex-wrap: wrap; 
-                align-items: center; 
-                justify-content: space-between; 
-                overflow: visible; 
-                background: #0f1724;
+            .hamburger-btn { display: flex; }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -300px;
+                width: 280px;
+                height: 100vh;
+                z-index: 1000;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+                border-radius: 0;
+                padding-top: 20px;
+                padding-bottom: 20px;
+                overflow-y: auto;
+                min-width: unset;
             }
-            .sidebar::after { display: none; }
-            .sidebar-brand { margin-bottom: 0; display: flex; align-items: center; gap: 12px; }
-            .sidebar-brand .logo-icon .icon-wrap { width: 36px; height: 36px; font-size: 16px; }
-            .sidebar-brand h1 { font-size: 17px; }
-            .sidebar-brand .subtitle { display: none; }
-            .sidebar-nav { display: none; }
-            .sidebar-footer { display: none; }
-            .main-content { height: calc(100vh - 70px); }
+            .sidebar.open { left: 0; }
+
+            .sidebar-close-btn {
+                display: block;
+                position: absolute;
+                top: 16px;
+                right: 20px;
+            }
+
+            .sidebar-brand { margin-top: 30px; margin-bottom: 30px; }
+            .sidebar-nav { margin-top: 20px; }
+            .sidebar-footer { margin-top: auto; padding-bottom: 20px; }
+
+            .no-scroll { overflow: hidden; }
+            .main-content { height: 100vh; width: 100%; max-width: 100%; }
+
             .main-header { padding: 14px 20px; }
             .main-header h2 { font-size: 16px; }
+
             .chat-messages { padding: 16px 20px; }
             .message { max-width: 90%; }
-            .quick-questions { padding: 0 0 8px; }
+
+            .quick-questions { padding: 0 20px 8px; }
             .quick-questions .chip { font-size: 12px; padding: 6px 14px; }
+
             .chat-input { padding: 12px 20px 16px; }
             .chat-input .input-wrapper { padding: 2px 2px 2px 16px; }
             .chat-input .input-wrapper .btn-send { padding: 8px 16px; font-size: 13px; }
             .chat-input .input-wrapper .btn-send span { display: none; }
+
             .hero-banner {
                 flex-direction: column;
                 padding: 24px;
@@ -736,6 +694,7 @@
             .hero-stats { justify-content: center; gap: 20px; }
             .hero-actions { justify-content: center; }
             .hero-image { display: none; }
+
             .features-grid {
                 grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
                 gap: 8px;
@@ -744,16 +703,25 @@
             .feature-card .feature-title { font-size: 11px; }
             .feature-card .feature-desc { display: none; }
         }
+
         @media (max-width: 480px) {
-            .sidebar { max-height: 60px; padding: 10px 16px; }
-            .sidebar-brand .logo-icon .icon-wrap { width: 32px; height: 32px; font-size: 14px; }
-            .sidebar-brand h1 { font-size: 15px; }
-            .main-content { height: calc(100vh - 60px); }
+            .sidebar {
+                width: 100%;
+                max-width: 320px;
+                left: -330px;
+            }
+            .sidebar.open { left: 0; }
+
             .main-header { padding: 10px 16px; }
             .main-header h2 { font-size: 14px; }
             .chat-messages { padding: 12px 16px; }
             .message .bubble { font-size: 13px; padding: 10px 14px; }
             .chat-input { padding: 10px 16px 14px; }
+            .hamburger-btn span { width: 22px; height: 2.5px; }
+        }
+
+        .k {
+            text-decoration: none;
         }
     </style>
 </head>
@@ -763,7 +731,12 @@
     <!-- ==========================================
     SIDEBAR
     ========================================== -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
+        <!-- Close button for mobile -->
+        <button class="sidebar-close-btn" onclick="toggleSidebar()">
+            <i class="fas fa-times"></i>
+        </button>
+
         <div class="sidebar-brand">
             <div class="logo-icon">
                 <div class="icon-wrap"><i class="fas fa-shield-alt"></i></div>
@@ -819,6 +792,9 @@
             </div>
         </div>
     </aside>
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
     
     <!-- ==========================================
     MAIN CONTENT
@@ -827,9 +803,15 @@
         
         <!-- Header -->
         <header class="main-header">
+            <!-- Hamburger button (mobile) -->
+            <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
             <h2><i class="fas fa-comment-dots"></i> Chat Assistant</h2>
             <div class="header-actions">
-                <!-- sss -->
                 <span class="status">
                     <span class="dot"></span>
                     <span>Online</span>
@@ -896,21 +878,30 @@
             <!-- Features Grid -->
             <div class="features-grid">
                 <div class="feature-card">
+                    <a href="" class="k">
                     <div class="feature-icon blue"><i class="fas fa-robot"></i></div>
                     <div class="feature-title">AI Chatbot</div>
                     <div class="feature-desc">Get instant answers</div>
+                    </a>
                 </div>
-                <div class="feature-card">
+                <div  class="feature-card">
+                    <a href="/learn/" class="k">
                     <div class="feature-icon green"><i class="fas fa-graduation-cap"></i></div>
                     <div class="feature-title">Learning Hub</div>
                     <div class="feature-desc">Explore resources</div>
+                    </a>
+                        
+                    
+                    
                 </div>
                 <div class="feature-card">
+                    <a href="/quizzes/" class="k">
                     <div class="feature-icon purple"><i class="fas fa-trophy"></i></div>
                     <div class="feature-title">Quizzes</div>
                     <div class="feature-desc">Test your knowledge</div>
+                    </a>
                 </div>
-                <div class="feature-card">
+                <!-- <div class="feature-card">
                     <div class="feature-icon orange"><i class="fas fa-shield-alt"></i></div>
                     <div class="feature-title">Cyber Safety</div>
                     <div class="feature-desc">Stay protected</div>
@@ -919,7 +910,7 @@
                     <div class="feature-icon red"><i class="fas fa-gavel"></i></div>
                     <div class="feature-title">Digital Rights</div>
                     <div class="feature-desc">Know your rights</div>
-                </div>
+                </div> -->
             </div>
             
             <!-- Welcome Message -->
@@ -1033,9 +1024,7 @@ function getCookie(name) {
 }
 
 function resetChat() {
-    // Generate a new session ID
     sessionId = 'session_' + Date.now();
-    // Reset the messages area to initial state
     document.getElementById('chatMessages').innerHTML = `
         <div class="hero-banner">
             <div class="hero-content">
@@ -1077,9 +1066,33 @@ function resetChat() {
             </div>
         </div>
     `;
-    // Focus the input
     document.getElementById('userInput').focus();
 }
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+    document.body.classList.toggle('no-scroll');
+}
+
+// Close sidebar when clicking overlay
+document.querySelector('.sidebar-overlay').addEventListener('click', function() {
+    if (document.getElementById('sidebar').classList.contains('open')) {
+        toggleSidebar();
+    }
+});
+
+// Close sidebar with ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('open')) {
+            toggleSidebar();
+        }
+    }
+});
 </script>
 </body>
 </html>
