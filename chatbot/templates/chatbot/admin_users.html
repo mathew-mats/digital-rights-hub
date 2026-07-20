@@ -206,11 +206,8 @@
         .stat-card .stat-label { font-size: 14px; color: #8a9bb5; font-weight: 500; margin-top: 2px; }
 
         .table-wrap {
-            background: white;
-            border-radius: 16px;
-            border: 1px solid #eef2f6;
-            overflow-x: auto;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            background: white; border-radius: 16px; border: 1px solid #eef2f6;
+            overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
         table {
             width: 100%;
@@ -277,12 +274,11 @@
         .toast-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .toast-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
         .toast-info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
-        .toast-message i { font-size: 18px; }
 
         .section-title { font-size: 16px; font-weight: 700; color: #1a2332; margin-bottom: 16px; margin-top: 24px; }
 
         /* ============================================
-           CUSTOM DELETE MODAL
+           CUSTOM STATUS MODAL
            ============================================ */
         .modal-overlay {
             display: none;
@@ -320,14 +316,15 @@
             width: 72px;
             height: 72px;
             border-radius: 50%;
-            background: #fee2e2;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 16px;
             font-size: 32px;
-            color: #ef4444;
         }
+        .modal-icon.warning { background: #fef3c7; color: #d97706; }
+        .modal-icon.success { background: #dcfce7; color: #16a34a; }
+
         .modal-box h3 {
             font-size: 20px;
             font-weight: 700;
@@ -367,14 +364,22 @@
             transform: translateY(-2px);
         }
         .modal-btn-confirm {
-            background: #ef4444;
+            background: #d97706;
             color: white;
-            box-shadow: 0 4px 16px rgba(239,68,68,0.25);
+            box-shadow: 0 4px 16px rgba(217,119,6,0.25);
         }
         .modal-btn-confirm:hover {
-            background: #dc2626;
+            background: #b45309;
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(239,68,68,0.35);
+            box-shadow: 0 8px 24px rgba(217,119,6,0.35);
+        }
+        .modal-btn-confirm.activate {
+            background: #16a34a;
+            box-shadow: 0 4px 16px rgba(22,163,74,0.25);
+        }
+        .modal-btn-confirm.activate:hover {
+            background: #15803d;
+            box-shadow: 0 8px 24px rgba(22,163,74,0.35);
         }
         .modal-btn i { font-size: 14px; }
         body.modal-open { overflow: hidden; }
@@ -555,13 +560,15 @@
                     </td>
                     <td>
                         <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                            <form method="POST" action="{% url 'admin_toggle_user_status' u.id %}" style="display:inline;">
+                            <!-- Status Toggle Button -->
+                            <form method="POST" action="{% url 'admin_toggle_user_status' u.id %}" style="display:inline;" id="statusForm-{{ u.id }}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn-action {% if u.is_active %}warning{% else %}success{% endif %}" 
-                                        onclick="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.username }}?')">
+                                <button type="button" class="btn-action {% if u.is_active %}warning{% else %}success{% endif %}" 
+                                        onclick="openStatusModal('statusForm-{{ u.id }}', '{{ u.username }}', {% if u.is_active %}false{% else %}true{% endif %})">
                                     {% if u.is_active %}<i class="fas fa-pause"></i>{% else %}<i class="fas fa-play"></i>{% endif %}
                                 </button>
                             </form>
+                            <!-- Delete Button -->
                             <form method="POST" action="{% url 'admin_delete_user' u.id %}" style="display:inline;" id="deleteForm-{{ u.id }}">
                                 {% csrf_token %}
                                 <button type="button" class="btn-action danger" onclick="openDeleteModal('deleteForm-{{ u.id }}', 'Delete user {{ u.username }}?')">
@@ -577,20 +584,53 @@
     </div>
 </main>
 
-<!-- Delete Modal -->
-<div class="modal-overlay" id="deleteModal">
+<!-- ==========================================
+CUSTOM STATUS MODAL
+========================================== -->
+<div class="modal-overlay" id="statusModal">
     <div class="modal-box">
-        <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
-        <h3>Confirm Deletion</h3>
-        <p id="deleteModalMessage">Are you sure you want to delete this item?</p>
+        <div class="modal-icon" id="statusModalIcon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 id="statusModalTitle">Confirm Action</h3>
+        <p id="statusModalMessage">Are you sure you want to change this user's status?</p>
         <div class="modal-actions">
-            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()"><i class="fas fa-times"></i> Cancel</button>
-            <button class="modal-btn modal-btn-confirm" id="confirmDeleteBtn"><i class="fas fa-trash"></i> Delete</button>
+            <button class="modal-btn modal-btn-cancel" onclick="closeStatusModal()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button class="modal-btn modal-btn-confirm" id="confirmStatusBtn">
+                <i class="fas fa-check"></i> Confirm
+            </button>
         </div>
     </div>
 </div>
 
+<!-- ==========================================
+CUSTOM DELETE MODAL
+========================================== -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box">
+        <div class="modal-icon" style="background:#fee2e2;color:#ef4444;">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3>Confirm Deletion</h3>
+        <p id="deleteModalMessage">Are you sure you want to delete this user?</p>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()"><i class="fas fa-times"></i> Cancel</button>
+            <button class="modal-btn modal-btn-confirm" style="background:#ef4444;box-shadow:0 4px 16px rgba(239,68,68,0.25);" id="confirmDeleteBtn">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+JAVASCRIPT
+========================================== -->
 <script>
+// ==========================================
+// SIDEBAR TOGGLE
+// ==========================================
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
@@ -611,13 +651,68 @@ document.addEventListener('keydown', function(event) {
 });
 
 // ==========================================
-// CUSTOM DELETE MODAL
+// STATUS MODAL
+// ==========================================
+let statusFormId = null;
+let isActivating = false;
+
+function openStatusModal(formId, username, willActivate) {
+    statusFormId = formId;
+    isActivating = willActivate;
+    
+    const modal = document.getElementById('statusModal');
+    const icon = document.getElementById('statusModalIcon');
+    const title = document.getElementById('statusModalTitle');
+    const message = document.getElementById('statusModalMessage');
+    const confirmBtn = document.getElementById('confirmStatusBtn');
+    
+    if (willActivate) {
+        icon.className = 'modal-icon success';
+        icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        title.textContent = 'Activate User';
+        message.textContent = `Are you sure you want to activate "${username}"? They will be able to log in again.`;
+        confirmBtn.className = 'modal-btn modal-btn-confirm activate';
+        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Activate';
+    } else {
+        icon.className = 'modal-icon warning';
+        icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        title.textContent = 'Deactivate User';
+        message.textContent = `Are you sure you want to deactivate "${username}"? They will not be able to log in until reactivated.`;
+        confirmBtn.className = 'modal-btn modal-btn-confirm';
+        confirmBtn.innerHTML = '<i class="fas fa-pause"></i> Deactivate';
+    }
+    
+    modal.classList.add('active');
+    document.body.classList.add('modal-open');
+}
+
+function closeStatusModal() {
+    document.getElementById('statusModal').classList.remove('active');
+    document.body.classList.remove('modal-open');
+    statusFormId = null;
+}
+
+document.getElementById('confirmStatusBtn').addEventListener('click', function() {
+    if (statusFormId) {
+        const form = document.getElementById(statusFormId);
+        if (form) { form.submit(); }
+    }
+    closeStatusModal();
+});
+
+// Close status modal on overlay click
+document.getElementById('statusModal').addEventListener('click', function(e) {
+    if (e.target === this) { closeStatusModal(); }
+});
+
+// ==========================================
+// DELETE MODAL
 // ==========================================
 let deleteFormId = null;
 
 function openDeleteModal(formId, message) {
     deleteFormId = formId;
-    document.getElementById('deleteModalMessage').textContent = message || 'Are you sure you want to delete this item?';
+    document.getElementById('deleteModalMessage').textContent = message || 'Are you sure you want to delete this user?';
     document.getElementById('deleteModal').classList.add('active');
     document.body.classList.add('modal-open');
 }
@@ -640,8 +735,12 @@ document.getElementById('deleteModal').addEventListener('click', function(e) {
     if (e.target === this) { closeDeleteModal(); }
 });
 
+// Close modals with ESC key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { closeDeleteModal(); }
+    if (e.key === 'Escape') {
+        closeStatusModal();
+        closeDeleteModal();
+    }
 });
 </script>
 
