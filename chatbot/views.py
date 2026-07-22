@@ -22,7 +22,7 @@ from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion,
 # --- NO GEMINI CLIENT AT STARTUP! ---
 # Gemini will be loaded ONLY when needed in the function below
 
-MODEL_NAME = 'gemini-2.0-flash'
+MODEL_NAME = 'gemini-2.5-flash'
 MAX_HISTORY = 10
 
 # --- Synonym dictionary for fallback ---
