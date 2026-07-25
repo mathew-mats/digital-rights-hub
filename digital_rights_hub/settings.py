@@ -153,6 +153,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'static', 'media')
 # Maximum upload size
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2097152  # 2MB
 
+
 # Password hashing using Argon2 (most secure)
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',

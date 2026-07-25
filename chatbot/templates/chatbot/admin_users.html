@@ -744,7 +744,7 @@
                             <form method="POST" action="{% url 'admin_toggle_user_status' u.id %}" style="display:inline;" id="statusForm-{{ u.id }}">
                                 {% csrf_token %}
                                 <button type="button" class="btn-action {% if u.is_active %}warning{% else %}success{% endif %}" 
-                                        onclick="openStatusModal('statusForm-{{ u.id }}', '{{ u.username }}', {% if u.is_active %}false{% else %}true{% endif %})">
+                                        onclick="openStatusModal('statusForm-{{ u.id }}', '{{ u.username|escapejs }}', {% if u.is_active %}false{% else %}true{% endif %})">
                                     {% if u.is_active %}<i class="fas fa-pause"></i>{% else %}<i class="fas fa-play"></i>{% endif %}
                                 </button>
                             </form>
