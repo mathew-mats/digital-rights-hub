@@ -15,6 +15,8 @@ import json
 import uuid
 import re
 import traceback
+import logging
+logger = logging.getLogger(__name__)
 
 # ---------- ADMIN USER MANAGEMENT ----------
 from django.contrib.auth.models import User
@@ -554,6 +556,8 @@ def admin_quizzes(request):
 
 @staff_member_required(login_url='admin_login')
 def admin_delete_quiz(request, quiz_id):
+
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted Quiz ID {quiz_id} - {quiz.title}')
     """Delete a quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
     quiz.delete()
@@ -585,6 +589,7 @@ def admin_faqs(request):
 
 @staff_member_required(login_url='admin_login')
 def admin_delete_faq(request, faq_id):
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted FAQ ID {faq_id} - {faq.title}')
     """Delete an FAQ."""
     faq = get_object_or_404(FAQ, id=faq_id)
     faq.delete()
@@ -634,6 +639,8 @@ def admin_quiz_detail(request, quiz_id):
 
 @staff_member_required(login_url='admin_login')
 def admin_delete_question(request, question_id):
+
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted Question ID {question_id} - {question.title}')
     """Delete a question from a quiz."""
     question = get_object_or_404(QuizQuestion, id=question_id)
     quiz_id = question.quiz.id
@@ -718,6 +725,7 @@ def admin_toggle_user_status(request, user_id):
 
 @staff_member_required(login_url='admin_login')
 def admin_delete_user(request, user_id):
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted User ID {user_id} - {user.title}')
     """Delete a user account."""
     user = get_object_or_404(User, id=user_id)
     username = user.username
