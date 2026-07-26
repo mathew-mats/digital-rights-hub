@@ -107,6 +107,54 @@
         }
         .auth-card .form-group input:focus { border-color:#4a9eff; outline:none; box-shadow:0 0 0 4px rgba(74,158,255,0.08); }
         
+        /* ===== PASSWORD STRENGTH METER STYLES ===== */
+        #password-strength {
+            margin-top: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+        #password-requirements {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 8px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+        }
+        #password-requirements li {
+            font-size: 12px;
+            color: #999;
+            transition: all 0.3s ease;
+        }
+        #password-requirements li.valid {
+            color: #2e7d32;
+        }
+        #password-requirements li.valid::before {
+            content: "✅ ";
+        }
+        #password-requirements li.invalid::before {
+            content: "❌ ";
+        }
+        #strength-bar-wrapper {
+            height: 6px;
+            width: 100%;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        #strength-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+        #strength-text {
+            font-size: 12px;
+            color: #888;
+        }
+        /* ===== END PASSWORD STRENGTH METER ===== */
+        
         .btn-primary-custom { 
             width:100%; 
             background:linear-gradient(135deg,#4a9eff,#6c5ce7); 
@@ -153,184 +201,165 @@
         }
 
         /* ============================================
-   REAL PHONE FIX - USE dvh
-   ============================================ */
-@media (max-width: 768px) {
-    html, body {
-        height: 100%;
-        width: 100%;
-        overflow: hidden;
-        position: fixed;  /* Prevents bouncing on iOS Safari */
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: 0;
-        padding: 0;
-    }
-    
-    .app-container {
-        width: 100%;
-        height: 100dvh;  /* <-- KEY: dynamic viewport height */
-        max-height: 100dvh;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .main-content {
-        flex: 1;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        margin-left: 0 !important;
-        min-height: 0;  /* Prevents flex overflow */
-    }
-    
-    /* Chat messages */
-    .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 12px 16px 12px 16px;
-        min-height: 0;  /* Important for flex */
-        padding-bottom: 8px;
-    }
-    
-    /* Quick questions */
-    .quick-questions {
-        flex-shrink: 0;
-        padding: 6px 12px;
-        background: #f8fafc;
-        border-top: 1px solid #eef2f6;
-        overflow-x: auto;
-        white-space: nowrap;
-        display: flex;
-        gap: 6px;
-        flex-wrap: nowrap;
-    }
-    
-    /* Chat input */
-    .chat-input {
-        flex-shrink: 0;
-        padding: 8px 12px 12px;
-        background: white;
-        border-top: 1px solid #eef2f6;
-        width: 100%;
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
-    
-    /* Input wrapper */
-    .chat-input .input-wrapper {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        background: #f0f4f9;
-        border-radius: 10px;
-        padding: 2px 2px 2px 12px;
-    }
-    
-    .chat-input .input-wrapper input {
-        flex: 1;
-        border: none;
-        background: transparent;
-        padding: 8px 0;
-        font-size: 14px;
-        outline: none;
-        min-height: 40px;
-    }
-    
-    .chat-input .input-wrapper .btn-send {
-        padding: 6px 14px;
-        font-size: 13px;
-        border-radius: 8px;
-        background: #1a2332;
-        color: white;
-        border: none;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-    
-    .chat-input .input-wrapper .btn-send span {
-        display: none;
-    }
-    
-    /* Hero banner small */
-    .hero-banner {
-        flex-shrink: 0;
-        padding: 10px 14px;
-        margin-bottom: 0;
-    }
-    .hero-content h1 {
-        font-size: 16px;
-    }
-    .hero-content p {
-        font-size: 12px;
-        margin-bottom: 4px;
-    }
-    .hero-stats {
-        gap: 8px;
-        margin-bottom: 6px;
-    }
-    .hero-stats .stat .number {
-        font-size: 14px;
-    }
-    .hero-stats .stat .label {
-        font-size: 10px;
-    }
-    .hero-actions .btn-primary-hero,
-    .hero-actions .btn-secondary-hero {
-        padding: 4px 10px;
-        font-size: 11px;
-    }
-    .hero-image {
-        display: none;
-    }
-    
-    /* Features grid */
-    .features-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 4px;
-        flex-shrink: 0;
-        padding: 4px 0;
-    }
-    .feature-card {
-        padding: 6px 4px;
-        border-radius: 8px;
-    }
-    .feature-card .feature-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
-        margin: 0 auto 4px;
-    }
-    .feature-card .feature-title {
-        font-size: 9px;
-    }
-    .feature-card .feature-desc {
-        display: none;
-    }
-    
-    /* Welcome message */
-    .welcome-message .bubble {
-        padding: 10px 14px;
-    }
-    .welcome-message .bubble .welcome-title {
-        font-size: 15px;
-    }
-    .welcome-message .bubble .welcome-desc {
-        font-size: 12px;
-    }
-    .welcome-message .bubble .topic-list li {
-        font-size: 10px;
-        padding: 2px 10px;
-    }
-    .welcome-message .bubble .suggestion {
-        font-size: 11px;
-    }
-}
+           REAL PHONE FIX - USE dvh
+           ============================================ */
+        @media (max-width: 768px) {
+            html, body {
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                margin: 0;
+                padding: 0;
+            }
+            .app-container {
+                width: 100%;
+                height: 100dvh;
+                max-height: 100dvh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            .main-content {
+                flex: 1;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                margin-left: 0 !important;
+                min-height: 0;
+            }
+            .chat-messages {
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 12px 16px 12px 16px;
+                min-height: 0;
+                padding-bottom: 8px;
+            }
+            .quick-questions {
+                flex-shrink: 0;
+                padding: 6px 12px;
+                background: #f8fafc;
+                border-top: 1px solid #eef2f6;
+                overflow-x: auto;
+                white-space: nowrap;
+                display: flex;
+                gap: 6px;
+                flex-wrap: nowrap;
+            }
+            .chat-input {
+                flex-shrink: 0;
+                padding: 8px 12px 12px;
+                background: white;
+                border-top: 1px solid #eef2f6;
+                width: 100%;
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
+            .chat-input .input-wrapper {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                background: #f0f4f9;
+                border-radius: 10px;
+                padding: 2px 2px 2px 12px;
+            }
+            .chat-input .input-wrapper input {
+                flex: 1;
+                border: none;
+                background: transparent;
+                padding: 8px 0;
+                font-size: 14px;
+                outline: none;
+                min-height: 40px;
+            }
+            .chat-input .input-wrapper .btn-send {
+                padding: 6px 14px;
+                font-size: 13px;
+                border-radius: 8px;
+                background: #1a2332;
+                color: white;
+                border: none;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            .chat-input .input-wrapper .btn-send span {
+                display: none;
+            }
+            .hero-banner {
+                flex-shrink: 0;
+                padding: 10px 14px;
+                margin-bottom: 0;
+            }
+            .hero-content h1 {
+                font-size: 16px;
+            }
+            .hero-content p {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+            .hero-stats {
+                gap: 8px;
+                margin-bottom: 6px;
+            }
+            .hero-stats .stat .number {
+                font-size: 14px;
+            }
+            .hero-stats .stat .label {
+                font-size: 10px;
+            }
+            .hero-actions .btn-primary-hero,
+            .hero-actions .btn-secondary-hero {
+                padding: 4px 10px;
+                font-size: 11px;
+            }
+            .hero-image {
+                display: none;
+            }
+            .features-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 4px;
+                flex-shrink: 0;
+                padding: 4px 0;
+            }
+            .feature-card {
+                padding: 6px 4px;
+                border-radius: 8px;
+            }
+            .feature-card .feature-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+                margin: 0 auto 4px;
+            }
+            .feature-card .feature-title {
+                font-size: 9px;
+            }
+            .feature-card .feature-desc {
+                display: none;
+            }
+            .welcome-message .bubble {
+                padding: 10px 14px;
+            }
+            .welcome-message .bubble .welcome-title {
+                font-size: 15px;
+            }
+            .welcome-message .bubble .welcome-desc {
+                font-size: 12px;
+            }
+            .welcome-message .bubble .topic-list li {
+                font-size: 10px;
+                padding: 2px 10px;
+            }
+            .welcome-message .bubble .suggestion {
+                font-size: 11px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -343,11 +372,12 @@
         </div>
         <nav class="sidebar-nav">
             <div class="nav-label">Main</div>
-            <a href="/" class="nav-item"><i class="fas fa-comment-dots"></i> Chat Assistant</a>
+            <a href="/" class="nav-item "><i class="fas fa-home"></i> Home</a>
+            <a href="/chat/" class="nav-item"><i class="fas fa-comment-dots"></i> Chat Assistant</a>
             <a href="/learn/" class="nav-item"><i class="fas fa-graduation-cap"></i> Learning Hub</a>
             <a href="/quizzes/" class="nav-item"><i class="fas fa-trophy"></i> Quizzes <span class="badge">New</span></a>
             <div style="margin-top:24px;"><div class="nav-label">Actions</div>
-            <a href="#" onclick="resetChat()" class="nav-item"><i class="fas fa-plus-circle"></i> New Chat</a></div>
+            <a href="/chat/" onclick="resetChat()" class="nav-item"><i class="fas fa-plus-circle"></i> New Chat</a></div>
         </nav>
         <div class="sidebar-footer">
             <div class="user-info">
@@ -413,6 +443,32 @@
                     <div class="form-group">
                         <label for="password1">Password</label>
                         <input type="password" id="password1" name="password1" placeholder="Create a password" required>
+
+                        <!-- ============================================ -->
+                        <!-- PASSWORD STRENGTH METER (NEW)                -->
+                        <!-- ============================================ -->
+                        <div id="password-strength">
+                            <!-- Checklist -->
+                            <ul id="password-requirements">
+                                <li class="invalid" id="req-length">At least 8 characters</li>
+                                <li class="invalid" id="req-lower">Lowercase letter (a-z)</li>
+                                <li class="invalid" id="req-upper">Uppercase letter (A-Z)</li>
+                                <li class="invalid" id="req-number">Number (0-9)</li>
+                                <li class="invalid" id="req-special">Special character (!@#$%&*)</li>
+                            </ul>
+
+                            <!-- Progress Bar -->
+                            <div id="strength-bar-wrapper">
+                                <div id="strength-bar"></div>
+                            </div>
+
+                            <!-- Status Text -->
+                            <span id="strength-text">Enter a strong password</span>
+                        </div>
+                        <!-- ============================================ -->
+                        <!-- END PASSWORD STRENGTH METER                  -->
+                        <!-- ============================================ -->
+
                     </div>
                     <div class="form-group">
                         <label for="password2">Confirm Password</label>
@@ -451,20 +507,94 @@ function resetChat() {
 }
 
 // ============================================
+// PASSWORD STRENGTH METER LOGIC (NEW)
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password1');
+    if (!passwordInput) return;
+
+    // Check rules
+    const rules = {
+        length: (pwd) => pwd.length >= 8,
+        lower: (pwd) => /[a-z]/.test(pwd),
+        upper: (pwd) => /[A-Z]/.test(pwd),
+        number: (pwd) => /[0-9]/.test(pwd),
+        special: (pwd) => /[$@#&!%*?]/.test(pwd)
+    };
+
+    // Map to DOM elements
+    const reqElements = {
+        length: document.getElementById('req-length'),
+        lower: document.getElementById('req-lower'),
+        upper: document.getElementById('req-upper'),
+        number: document.getElementById('req-number'),
+        special: document.getElementById('req-special')
+    };
+
+    // Store original labels (without the emoji prefix)
+    const originalLabels = {
+        length: 'At least 8 characters',
+        lower: 'Lowercase letter (a-z)',
+        upper: 'Uppercase letter (A-Z)',
+        number: 'Number (0-9)',
+        special: 'Special character (!@#$%&*)'
+    };
+
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        let metCount = 0;
+        const totalRules = 5;
+
+        // Check each rule and update the checklist
+        for (const [key, testFn] of Object.entries(rules)) {
+            const isMet = testFn(password);
+            const el = reqElements[key];
+            if (isMet) {
+                el.className = 'valid';
+                el.textContent = originalLabels[key];
+                metCount++;
+            } else {
+                el.className = 'invalid';
+                el.textContent = originalLabels[key];
+            }
+        }
+
+        // Update progress bar
+        const bar = document.getElementById('strength-bar');
+        const text = document.getElementById('strength-text');
+        const percentage = (metCount / totalRules) * 100;
+        bar.style.width = percentage + '%';
+
+        // Color and label based on count
+        const colors = ['#d32f2f', '#d32f2f', '#f57c00', '#fbc02d', '#388e3c', '#1b5e20'];
+        const labels = ['Very Weak', 'Very Weak', 'Weak', 'Medium', 'Strong', 'Very Strong'];
+        bar.style.background = colors[metCount];
+
+        if (password.length === 0) {
+            text.textContent = 'Enter a strong password';
+            text.style.color = '#888';
+        } else {
+            text.textContent = labels[metCount];
+            text.style.color = colors[metCount];
+        }
+    });
+});
+// ============================================
+// END PASSWORD STRENGTH METER LOGIC
+// ============================================
+
+// ============================================
 // FIX FOR MOBILE KEYBOARD
 // ============================================
 (function() {
     if (window.innerWidth <= 768) {
         const userInput = document.getElementById('userInput');
         if (userInput) {
-            // When input is focused, scroll it into view
             userInput.addEventListener('focus', function() {
                 setTimeout(function() {
                     this.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }.bind(this), 300);
             });
-            
-            // When input loses focus, scroll back to top of messages
             userInput.addEventListener('blur', function() {
                 const messages = document.getElementById('chatMessages');
                 if (messages) {
@@ -477,12 +607,10 @@ function resetChat() {
     }
 })();
 
-// Handle window resize (when address bar appears/disappears)
 let lastHeight = window.innerHeight;
 window.addEventListener('resize', function() {
     const currentHeight = window.innerHeight;
     if (Math.abs(currentHeight - lastHeight) > 100) {
-        // Keyboard likely opened or closed
         const messages = document.getElementById('chatMessages');
         if (messages) {
             setTimeout(function() {

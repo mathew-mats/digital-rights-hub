@@ -732,3 +732,20 @@ def admin_delete_user(request, user_id):
     user.delete()
     messages.success(request, f'User {username} has been deleted.')
     return redirect('admin_users')
+
+
+def home(request):
+    """
+    Professional landing page for Digital Rights Hub
+    """
+    # Get some stats for the dashboard
+    total_users = User.objects.count()
+    total_resources = Resource.objects.count()
+    total_quizzes = Quiz.objects.count()
+    
+    context = {
+        'total_users': total_users,
+        'total_resources': total_resources,
+        'total_quizzes': total_quizzes,
+    }
+    return render(request, 'chatbot/home.html', context)
