@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Rights Hub – Empowering Uganda's Digital Future</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:#f8fafc; color:#1a2332; }
+    
+    /* ===== SIDEBAR (Desktop) ===== */
+    .app-container { display:flex; min-height:100vh; position:relative; }
+    .sidebar { 
+        width:280px; min-width:280px; 
+        background:linear-gradient(180deg,#0f1724 0%,#1a2332 100%);
+        color:#fff; padding:32px 24px; display:flex; flex-direction:column; 
+        min-height:100vh; position:sticky; top:0; align-self:flex-start; height:100vh;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index:1000;
+        overflow-y: auto;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+    /* Hide scrollbar for Chrome/Safari/Edge */
+    .sidebar::-webkit-scrollbar {
+        display: none;
+        width: 0px;
+        height: 0px;
+        background: transparent;
+    }
+
+    /* ===== SIDEBAR CLOSE BUTTON (Mobile only) ===== */
+    .sidebar-close-btn {
+        display:none;
+        background:none;
+        border:none;
+        color:#fff;
+        font-size:28px;
+        cursor:pointer;
+        padding:8px;
+        margin-left:auto;
+        transition:transform 0.3s ease;
+        width:fit-content;
+    }
+    .sidebar-close-btn:hover { transform:rotate(90deg); }
+
+    .sidebar-brand { margin-bottom:40px; flex-shrink:0; }
+    .sidebar-brand .logo-icon { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+    .sidebar-brand .logo-icon .icon-wrap {
+        width:44px; height:44px;
+        background:linear-gradient(135deg,#4a9eff,#6c5ce7);
+        border-radius:12px; display:flex; align-items:center; justify-content:center;
+        font-size:22px; color:#fff; box-shadow:0 8px 24px rgba(74,158,255,0.25);
+    }
+    .sidebar-brand h1 { font-size:22px; font-weight:800; margin:0; letter-spacing:-0.5px; 
+        background:linear-gradient(135deg,#fff 60%,#8ab4f8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .sidebar-brand .subtitle { font-size:12px; color:#5a7a9a; font-weight:500; letter-spacing:0.5px; text-transform:uppercase; margin-left:58px; }
+    
+    .sidebar-nav { flex:1; overflow-y:auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .sidebar-nav::-webkit-scrollbar { display: none; width: 0px; }
+    .sidebar-nav .nav-label { font-size:10px; text-transform:uppercase; color:#4a6a8a; font-weight:700; margin-bottom:12px; letter-spacing:1px; }
+    .sidebar-nav .nav-item { 
+        display:flex; align-items:center; gap:14px; padding:12px 16px; border-radius:12px; 
+        color:#7a9abb; text-decoration:none; font-size:14px; font-weight:500; 
+        transition:all 0.3s cubic-bezier(0.4,0,0.2,1); cursor:pointer; margin-bottom:4px;
+    }
+    .sidebar-nav .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; transform:translateX(4px); }
+    .sidebar-nav .nav-item.active { background:rgba(74,158,255,0.12); color:#4a9eff; box-shadow:inset 3px 0 0 #4a9eff; }
+    .sidebar-nav .nav-item i { width:22px; text-align:center; font-size:16px; }
+    .sidebar-nav .nav-item .badge { 
+        margin-left:auto; background:linear-gradient(135deg,#4a9eff,#6c5ce7);
+        color:#fff; font-size:10px; padding:2px 12px; border-radius:20px; font-weight:700;
+    }
+    
+    .sidebar-footer { border-top:1px solid rgba(255,255,255,0.06); padding-top:20px; margin-top:auto; flex-shrink:0; }
+    .sidebar-footer .user-info { display:flex; align-items:center; gap:14px; }
+    .sidebar-footer .user-avatar { 
+        width:44px; height:44px; border-radius:50%; 
+        background:linear-gradient(135deg,#4a9eff,#6c5ce7);
+        display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; 
+        color:#fff; box-shadow:0 4px 16px rgba(74,158,255,0.3); flex-shrink:0;
+    }
+    .sidebar-footer .user-avatar.guest { background:#2a3a4e; box-shadow:none; }
+    .sidebar-footer .user-name { font-size:14px; font-weight:600; color:#fff; }
+    .sidebar-footer .user-role { font-size:12px; }
+    .sidebar-footer .user-role a { color:#7a9abb; text-decoration:none; font-size:12px; transition:color 0.2s; }
+    .sidebar-footer .user-role a:hover { color:#fff; }
+    .sidebar-footer .user-role .sep { color:#3a5a7a; margin:0 4px; }
+
+    /* ===== SIDEBAR OVERLAY (Mobile) ===== */
+    .sidebar-overlay {
+        display:none;
+        position:fixed;
+        top:0; left:0;
+        width:100%; height:100%;
+        background:rgba(0,0,0,0.5);
+        z-index:999;
+        opacity:0;
+        transition:opacity 0.3s ease;
+    }
+    .sidebar-overlay.active {
+        display:block;
+        opacity:1;
+    }
+
+    /* ===== HAMBURGER BUTTON (Mobile/Tablet) ===== */
+    .hamburger-btn {
+        display:none;
+        flex-direction:column;
+        gap:5px;
+        background:none;
+        border:none;
+        cursor:pointer;
+        padding:8px;
+        margin-right:8px;
+        z-index:1001;
+    }
+    .hamburger-btn span {
+        display:block;
+        width:28px;
+        height:3px;
+        background:#1a2332;
+        border-radius:4px;
+        transition:all 0.3s ease;
+    }
+    .hamburger-btn:hover span { background:#4a9eff; }
+
+    /* ===== MAIN HEADER ===== */
+    .main-header {
+        padding:16px 32px;
+        background:rgba(255,255,255,0.8);
+        backdrop-filter:blur(20px);
+        border-bottom:1px solid rgba(0,0,0,0.04);
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        flex-shrink:0;
+    }
+    .main-header h2 {
+        font-size:20px;
+        font-weight:700;
+        color:#1a2332;
+        margin:0;
+        letter-spacing:-0.3px;
+    }
+    .main-header h2 i {
+        background:linear-gradient(135deg,#4a9eff,#6c5ce7);
+        -webkit-background-clip:text;
+        -webkit-text-fill-color:transparent;
+        margin-right:10px;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-content { 
+        flex:1; 
+        padding:0; 
+        background:#f8fafc; 
+        min-width:0;
+        overflow-y: auto;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+    .main-content::-webkit-scrollbar {
+        display: none;
+        width: 0px;
+        height: 0px;
+        background: transparent;
+    }
+    
+   /* ===== HERO SECTION WITH IMAGE ===== */
+.hero-section {
+    padding: 60px 40px 80px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e8edf5 100%);
+    border-bottom: 1px solid #eef2f6;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+}
+
+.hero-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    gap: 60px;
+}
+
+.hero-content {
+    flex: 1;
+    max-width: 600px;
+}
+
+.hero-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 2000px;
+}
+
+.hero-illustration {
+    max-width: 100%;
+    height: auto;
+    border-radius: 16px;
+    /* Optional: subtle shadow */
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    /* Optional: subtle hover effect */
+    transition: transform 0.3s ease;
+}
+
+.hero-illustration:hover {
+    transform: scale(1.02);
+}
+
+.hero-section .hero-title {
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    color: #1a2332;
+}
+
+.hero-section .hero-title span {
+    background: linear-gradient(135deg, #4a9eff, #6c5ce7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-section .hero-subtitle {
+    font-size: 18px;
+    color: #5a7a9a;
+    max-width: 500px;
+    margin-top: 16px;
+    line-height: 1.6;
+}
+
+.hero-section .hero-buttons {
+    margin-top: 28px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.hero-section .hero-buttons .btn-primary-custom {
+    background: linear-gradient(135deg, #4a9eff, #6c5ce7);
+    color: #fff;
+    padding: 14px 32px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 16px rgba(74, 158, 255, 0.25);
+    text-decoration: none;
+    display: inline-block;
+}
+
+.hero-section .hero-buttons .btn-primary-custom:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(74, 158, 255, 0.35);
+}
+
+.hero-section .hero-buttons .btn-outline {
+    background: transparent;
+    color: #1a2332;
+    padding: 14px 32px;
+    border: 2px solid #d0d7e2;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.hero-section .hero-buttons .btn-outline:hover {
+    border-color: #4a9eff;
+    color: #4a9eff;
+    transform: translateY(-3px);
+}
+
+.hero-stats {
+    display: flex;
+    gap: 40px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+}
+
+.hero-stats .stat .number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a2332;
+}
+
+.hero-stats .stat .label {
+    font-size: 14px;
+    color: #8a9bb5;
+}
+
+    /* Feature Cards */
+    .features-section {
+        padding:60px 40px 80px;
+        background:#ffffff;
+    }
+    .features-section .section-title {
+        font-size:32px; font-weight:700; color:#1a2332; text-align:center; margin-bottom:8px;
+    }
+    .features-section .section-subtitle {
+        font-size:16px; color:#8a9bb5; text-align:center; margin-bottom:40px;
+    }
+    .features-grid {
+        display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:24px;
+    }
+    .feature-card {
+        background:#f8fafc; border-radius:16px; padding:32px 24px; text-align:center;
+        transition:all 0.3s; border:1px solid #eef2f6;
+    }
+    .feature-card:hover { transform:translateY(-8px); box-shadow:0 12px 40px rgba(0,0,0,0.06); }
+    .feature-card .icon-wrap {
+        width:64px; height:64px; border-radius:50%; 
+        background:linear-gradient(135deg, rgba(74,158,255,0.1), rgba(108,92,231,0.1));
+        display:flex; align-items:center; justify-content:center; margin:0 auto 16px;
+        font-size:28px; color:#4a9eff;
+    }
+    .feature-card h3 { font-size:18px; font-weight:700; color:#1a2332; margin-bottom:8px; }
+    .feature-card p { font-size:14px; color:#5a7a9a; line-height:1.6; margin:0; }
+
+    /* CTA Section */
+    .cta-section {
+        padding:60px 40px;
+        background:linear-gradient(135deg,#0f1724,#1a2332);
+        color:#fff; text-align:center;
+    }
+    .cta-section h2 { font-size:32px; font-weight:700; }
+    .cta-section p { font-size:16px; color:#8ab4f8; margin-bottom:24px; }
+    .cta-section .btn-cta {
+        background:linear-gradient(135deg,#4a9eff,#6c5ce7);
+        color:#fff; padding:14px 40px; border:none; border-radius:12px;
+        font-weight:600; font-size:16px; cursor:pointer; transition:all 0.3s;
+        box-shadow:0 4px 16px rgba(74,158,255,0.3);
+        text-decoration:none;
+        display:inline-block;
+    }
+    .cta-section .btn-cta:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(74,158,255,0.5); }
+
+    /* Footer */
+    .footer {
+        padding:24px 40px;
+        background:#f0f2f5;
+        text-align:center; font-size:14px; color:#8a9bb5;
+        border-top:1px solid #eef2f6;
+    }
+    .footer a { color:#4a9eff; text-decoration:none; }
+
+    .no-scroll { overflow:hidden; }
+
+    /* icon image */
+    
+/* .hero-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 500px;
+}
+
+.hero-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+.hero-image .icon-wrapper {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1;
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.08), rgba(108, 92, 231, 0.08));
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 120px;
+    color: #4a9eff;
+    opacity: 0.6;
+    border: 1px solid rgba(74, 158, 255, 0.1);
+} */
+
+    /* ============================================
+       RESPONSIVE: TABLETS & MOBILE
+       ============================================ */
+    @media (max-width:1024px) {
+        .sidebar { width:240px; min-width:240px; }
+    }
+
+    @media (max-width:768px) {
+        /* Show hamburger button */
+        .hamburger-btn { display:flex; }
+        
+        /* Sidebar becomes fixed overlay */
+        .sidebar {
+            position:fixed;
+            top:0;
+            left:-300px;
+            width:280px;
+            height:100vh;
+            z-index:1000;
+            transition:left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow:0 0 40px rgba(0,0,0,0.2);
+            border-radius:0;
+            padding-top:20px;
+            padding-bottom:20px;
+            overflow-y:auto;
+            min-width:unset;
+            display:flex;
+            margin:0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .sidebar::-webkit-scrollbar { display: none; }
+        .sidebar.open { left:0; }
+        
+        /* Show close button on mobile */
+        .sidebar-close-btn {
+            display:block;
+            position:absolute;
+            top:16px;
+            right:20px;
+        }
+
+        /* Sidebar brand adjustment */
+        .sidebar-brand { margin-top:30px; margin-bottom:30px; }
+        .sidebar-nav { margin-top:20px; }
+        .sidebar-footer { margin-top:auto; padding-bottom:20px; }
+
+        /* Main content full width */
+        .main-content {
+            height:100vh;
+            width:100%;
+            max-width:100%;
+            overflow-y:auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        /* Header adjustments */
+        .main-header {
+            padding:14px 20px;
+        }
+        .main-header h2 {
+            font-size:16px;
+        }
+
+        /* Hero section */
+        .hero-section {
+            padding:40px 20px 60px;
+        }
+        .hero-section .hero-title {
+            font-size:32px;
+        }
+        .hero-section .hero-subtitle {
+            font-size:15px;
+        }
+
+        /* Features */
+        .features-section {
+            padding:40px 20px 60px;
+        }
+        .features-grid {
+            grid-template-columns:1fr;
+        }
+
+        /* CTA */
+        .cta-section {
+            padding:40px 20px;
+        }
+        .cta-section h2 {
+            font-size:24px;
+        }
+
+        @media (max-width:768px) {
+    /* ... your existing styles ... */
+
+    .hero-container {
+        flex-direction: column;
+        gap: 30px;
+        text-align: center;
+    }
+    
+    .hero-content {
+        max-width: 100%;
+        text-align: center;
+    }
+    
+    .hero-image {
+        max-width: 100%;
+        order: -1; /* Image appears above text on mobile */
+    }
+    
+    .hero-illustration {
+        max-width: 80%;
+        margin: 0 auto;
+    }
+    
+    .hero-section .hero-title {
+        font-size: 32px;
+        text-align: center;
+    }
+    
+    .hero-section .hero-subtitle {
+        max-width: 100%;
+        text-align: center;
+        font-size: 15px;
+    }
+    
+    .hero-section .hero-buttons {
+        justify-content: center;
+    }
+    
+    .hero-stats {
+        justify-content: center;
+        gap: 20px;
+    }
+}
+
+/*hero icon*/
+/* .hero-image {
+        max-width: 100%;
+        order: -1; /* Image appears above text on mobile */
+    }
+    
+    .hero-image .icon-wrapper {
+        max-width: 200px;
+        font-size: 60px;
+        padding: 30px;
+    } */
+
+        /* Footer */
+        .footer {
+            padding:20px 20px;
+        }
+    }
+
+    @media (max-width:480px) {
+        .sidebar {
+            width:100%;
+            max-width:320px;
+            left:-330px;
+        }
+        .sidebar.open {
+            left:0;
+        }
+        .main-header {
+            padding:10px 16px;
+        }
+        .hero-section {
+            padding:30px 16px 40px;
+        }
+        .hero-section .hero-title {
+            font-size:26px;
+        }
+        .hero-section .hero-subtitle {
+            font-size:14px;
+        }
+        .hero-section .hero-buttons .btn-primary-custom,
+        .hero-section .hero-buttons .btn-outline {
+            padding:12px 20px;
+            font-size:14px;
+            width:100%;
+            text-align:center;
+        }
+        .features-section {
+            padding:30px 16px 40px;
+        }
+        .features-section .section-title {
+            font-size:24px;
+        }
+        .cta-section {
+            padding:30px 16px;
+        }
+        .cta-section h2 {
+            font-size:20px;
+        }
+        .cta-section .btn-cta {
+            padding:12px 24px;
+            font-size:14px;
+            width:100%;
+        }
+        .footer {
+            padding:16px;
+            font-size:12px;
+        }
+        .hamburger-btn span {
+            width:22px;
+            height:2.5px;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        <div class="sidebar-brand">
+            <div class="logo-icon"><div class="icon-wrap"><i class="fas fa-shield-alt"></i></div><h1>Digital Rights Hub</h1></div>
+            <div class="subtitle">Uganda Internet Governance</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href="/" class="nav-item active"><i class="fas fa-home"></i> Home</a>
+            <a href="/chat/" class="nav-item"><i class="fas fa-comment-dots"></i> Chat Assistant</a>
+            <a href="/learn/" class="nav-item"><i class="fas fa-graduation-cap"></i> Learning Hub</a>
+            <a href="/quizzes/" class="nav-item"><i class="fas fa-trophy"></i> Quizzes <span class="badge">New</span></a>
+            <div style="margin-top:24px;"><div class="nav-label">Actions</div>
+            <a href="/chat/" onclick="resetChat()" class="nav-item"><i class="fas fa-plus-circle"></i> New Chat</a></div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                {% if user.is_authenticated %}
+                    <div class="user-avatar">{{ user.username|make_list|first|upper }}</div>
+                    <div>
+                        <div class="user-name">{{ user.username }}</div>
+                        <div class="user-role">
+                            <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
+                            <span class="sep">|</span>
+                            <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="user-avatar guest"><i class="fas fa-user" style="font-size:18px;"></i></div>
+                    <div>
+                        <div class="user-name">Guest</div>
+                        <div class="user-role">
+                            <a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Login</a>
+                            <span class="sep">|</span>
+                            <a href="{% url 'register' %}"><i class="fas fa-user-plus"></i> Register</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </aside>
+
+    <!-- SIDEBAR OVERLAY -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <header class="main-header">
+            <div style="display:flex; align-items:center;">
+                <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+                    <span></span><span></span><span></span>
+                </button>
+                <h2><i class="fas fa-home"></i> Digital Rights Hub</h2>
+            </div>
+            <div class="header-actions">
+                <span class="status" style="font-size:13px; color:#5a7a9a; display:flex; align-items:center; gap:8px; background:rgba(34,197,94,0.1); padding:4px 14px; border-radius:20px;">
+                    <span class="dot" style="width:8px; height:8px; border-radius:50%; background:#22c55e; display:inline-block; animation:pulse-dot 2s infinite;"></span>
+                    <span>Online</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- HERO SECTION -->
+        <section class="hero-section">
+            <div class="hero-container">
+                <!-- LEFT SIDE: Text Content -->
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        Know Your Rights. <br><span>Stay Safe Online.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Digital Rights Hub empowers Ugandan youth with knowledge about digital rights, 
+                        online safety, and cybersecurity through curated resources, gamified quizzes, 
+                        and an AI-powered assistant.
+                    </p>
+                    <div class="hero-buttons">
+                        {% if user.is_authenticated %}
+                            <a href="/chat/" class="btn-primary-custom">
+                                <i class="fas fa-comment-dots"></i> Start Chatting
+                            </a>
+                        {% else %}
+                            <a href="{% url 'register' %}" class="btn-primary-custom">
+                                <i class="fas fa-user-plus"></i> Get Started
+                            </a>
+                        {% endif %}
+                        <a href="/learn/" class="btn-outline">Explore Resources</a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <div class="number">{{ total_resources|default:0 }}</div>
+                            <div class="label">Learning Resources</div>
+                        </div>
+                        <div class="stat">
+                            <div class="number">{{ total_quizzes|default:0 }}</div>
+                            <div class="label">Quizzes</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- RIGHT SIDE: Image -->
+                <div class="hero-image">
+                    {% load static %}
+                    <img src="{% static 'chatbot/images/digital-rights-illustration.jpg' %}" 
+                        alt="Digital Rights Illustration" 
+                        class="hero-illustration">
+                        <!-- <div class="icon-wrapper">
+                            <i class="fas fa-shield-halved"></i>
+                        </div> -->
+
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURES SECTION -->
+        <section class="features-section">
+            <h2 class="section-title">Why Digital Rights Hub?</h2>
+            <p class="section-subtitle">Everything you need to understand and protect your digital rights in Uganda.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon-wrap"><i class="fas fa-robot"></i></div>
+                    <h3>AI Chat Assistant</h3>
+                    <p>Get instant answers to your digital rights questions. Powered by Google's Gemini AI.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap"><i class="fas fa-book-open"></i></div>
+                    <h3>Learning Hub</h3>
+                    <p>Curated resources from NITA-U, UCC, and CERT-UG. Learn at your own pace.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap"><i class="fas fa-gamepad"></i></div>
+                    <h3>Gamified Quizzes</h3>
+                    <p>Test your knowledge with interactive quizzes. Earn points and track your progress.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap"><i class="fas fa-shield-alt"></i></div>
+                    <h3>Digital Safety</h3>
+                    <p>Learn how to stay safe online, protect your privacy, and recognize cyber threats.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA SECTION -->
+        <section class="cta-section">
+            <h2>Ready to take control of your digital rights?</h2>
+            <p>Join thousands of Ugandan youth building a safer digital future.</p>
+            {% if user.is_authenticated %}
+                <a href="/chat/" class="btn-cta"><i class="fas fa-comment-dots"></i> Start Learning</a>
+            {% else %}
+                <a href="{% url 'register' %}" class="btn-cta"><i class="fas fa-user-plus"></i> Create Free Account</a>
+            {% endif %}
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>
+                &copy; 2026 <a href="/">Digital Rights Hub</a> | 
+                Empowering Uganda's Digital Future &bull;
+                <a href="#">Privacy Policy</a>
+            </p>
+        </footer>
+
+    </main>
+</div>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+    document.body.classList.toggle('no-scroll');
+}
+
+function resetChat() {
+    window.location.href = '/chat/';
+}
+
+// Close sidebar when Escape key is pressed
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('open')) {
+            toggleSidebar();
+        }
+    }
+});
+
+// Close sidebar when clicking outside (overlay handles this)
+document.getElementById('sidebarOverlay').addEventListener('click', function() {
+    if (document.getElementById('sidebar').classList.contains('open')) {
+        toggleSidebar();
+    }
+});
+</script>
+</body>
+</html>
