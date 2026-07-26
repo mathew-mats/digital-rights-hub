@@ -1,3 +1,6 @@
+from django.core.cache import cache
+from functools import wraps
+from django.http import JsonResponse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.messages import get_messages
 from django.contrib.auth.decorators import login_required
@@ -12,6 +15,7 @@ import json
 import uuid
 import re
 import traceback
+
 # ---------- ADMIN USER MANAGEMENT ----------
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -21,6 +25,35 @@ from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion,
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+
+# ===== RATE LIMITING DECORATOR =====
+def rate_limit(key_prefix, rate=5, period=60):
+    """
+    Limits login attempts to 'rate' per 'period' seconds.
+    Example: @rate_limit('login', rate=5, period=60) = 5 attempts per minute.
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if request.method == 'POST':
+                # Use IP address as part of the cache key
+                ip = request.META.get('REMOTE_ADDR')
+                key = f'rate_limit_{key_prefix}_{ip}'
+                
+                # Get current attempt count
+                attempts = cache.get(key, 0)
+                
+                if attempts >= rate:
+                    return JsonResponse({
+                        'error': f'Too many login attempts. Please wait {period} seconds.'
+                    }, status=429)
+                
+                # Increment attempts
+                cache.set(key, attempts + 1, period)
+            
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 # --- NO GEMINI CLIENT AT STARTUP! ---
 # Gemini will be loaded ONLY when needed in the function below
@@ -309,7 +342,7 @@ def quiz_take(request, quiz_id):
         return HttpResponseServerError(f"Error: {e}\n{traceback.format_exc()}")
 
 # ---------- AUTHENTICATION VIEWS ----------
-
+@rate_limit('register', rate=10, period=60)  # 10 attempts per minute for registration
 def register(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -356,6 +389,7 @@ def register(request):
     
     return render(request, 'chatbot/register.html')
 
+@rate_limit('login', rate=5, period=60)
 def user_login(request):
     if request.user.is_authenticated:
         return redirect('profile')
@@ -401,6 +435,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 
+@rate_limit('admin_login', rate=3, period=60)  # Stricter for admin
 def admin_login(request):
     """Admin login page."""
     if request.user.is_authenticated and request.user.is_staff:
