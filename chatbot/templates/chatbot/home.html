@@ -170,139 +170,40 @@
         background: transparent;
     }
     
-   /* ===== HERO SECTION WITH IMAGE ===== */
-.hero-section {
-    padding: 60px 40px 80px;
-    background: linear-gradient(135deg, #f8fafc 0%, #e8edf5 100%);
-    border-bottom: 1px solid #eef2f6;
-    min-height: 500px;
-    display: flex;
-    align-items: center;
-}
-
-.hero-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    gap: 60px;
-}
-
-.hero-content {
-    flex: 1;
-    max-width: 600px;
-}
-
-.hero-image {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    max-width: 2000px;
-}
-
-.hero-illustration {
-    max-width: 100%;
-    height: auto;
-    border-radius: 16px;
-    /* Optional: subtle shadow */
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
-    /* Optional: subtle hover effect */
-    transition: transform 0.3s ease;
-}
-
-.hero-illustration:hover {
-    transform: scale(1.02);
-}
-
-.hero-section .hero-title {
-    font-size: 48px;
-    font-weight: 800;
-    letter-spacing: -1px;
-    line-height: 1.1;
-    color: #1a2332;
-}
-
-.hero-section .hero-title span {
-    background: linear-gradient(135deg, #4a9eff, #6c5ce7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.hero-section .hero-subtitle {
-    font-size: 18px;
-    color: #5a7a9a;
-    max-width: 500px;
-    margin-top: 16px;
-    line-height: 1.6;
-}
-
-.hero-section .hero-buttons {
-    margin-top: 28px;
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.hero-section .hero-buttons .btn-primary-custom {
-    background: linear-gradient(135deg, #4a9eff, #6c5ce7);
-    color: #fff;
-    padding: 14px 32px;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 4px 16px rgba(74, 158, 255, 0.25);
-    text-decoration: none;
-    display: inline-block;
-}
-
-.hero-section .hero-buttons .btn-primary-custom:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(74, 158, 255, 0.35);
-}
-
-.hero-section .hero-buttons .btn-outline {
-    background: transparent;
-    color: #1a2332;
-    padding: 14px 32px;
-    border: 2px solid #d0d7e2;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.hero-section .hero-buttons .btn-outline:hover {
-    border-color: #4a9eff;
-    color: #4a9eff;
-    transform: translateY(-3px);
-}
-
-.hero-stats {
-    display: flex;
-    gap: 40px;
-    margin-top: 40px;
-    flex-wrap: wrap;
-}
-
-.hero-stats .stat .number {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1a2332;
-}
-
-.hero-stats .stat .label {
-    font-size: 14px;
-    color: #8a9bb5;
-}
+    /* Hero Section */
+    .hero-section {
+        padding:60px 40px 80px;
+        background:linear-gradient(135deg, #f8fafc 0%, #e8edf5 100%);
+        border-bottom:1px solid #eef2f6;
+    }
+    .hero-section .hero-title {
+        font-size:48px; font-weight:800; letter-spacing:-1px; line-height:1.1;
+        color:#1a2332; max-width:600px;
+    }
+    .hero-section .hero-title span { background:linear-gradient(135deg,#4a9eff,#6c5ce7); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .hero-section .hero-subtitle {
+        font-size:18px; color:#5a7a9a; max-width:500px; margin-top:16px; line-height:1.6;
+    }
+    .hero-section .hero-buttons { margin-top:28px; display:flex; gap:12px; flex-wrap:wrap; }
+    .hero-section .hero-buttons .btn-primary-custom {
+        background:linear-gradient(135deg,#4a9eff,#6c5ce7);
+        color:#fff; padding:14px 32px; border:none; border-radius:12px; 
+        font-weight:600; font-size:16px; cursor:pointer; transition:all 0.3s;
+        box-shadow:0 4px 16px rgba(74,158,255,0.25);
+        text-decoration:none;
+        display:inline-block;
+    }
+    .hero-section .hero-buttons .btn-primary-custom:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(74,158,255,0.35); }
+    .hero-section .hero-buttons .btn-outline {
+        background:transparent; color:#1a2332; padding:14px 32px; border:2px solid #d0d7e2; border-radius:12px; 
+        font-weight:600; font-size:16px; cursor:pointer; transition:all 0.3s; text-decoration:none; display:inline-block;
+    }
+    .hero-section .hero-buttons .btn-outline:hover { border-color:#4a9eff; color:#4a9eff; transform:translateY(-3px); }
+    .hero-stats {
+        display:flex; gap:40px; margin-top:40px; flex-wrap:wrap;
+    }
+    .hero-stats .stat .number { font-size:28px; font-weight:700; color:#1a2332; }
+    .hero-stats .stat .label { font-size:14px; color:#8a9bb5; }
 
     /* Feature Cards */
     .features-section {
@@ -360,38 +261,6 @@
     .footer a { color:#4a9eff; text-decoration:none; }
 
     .no-scroll { overflow:hidden; }
-
-    /* icon image */
-    
-/* .hero-image {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    max-width: 500px;
-}
-
-.hero-image img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 16px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
-}
-
-.hero-image .icon-wrapper {
-    width: 100%;
-    max-width: 400px;
-    aspect-ratio: 1 / 1;
-    background: linear-gradient(135deg, rgba(74, 158, 255, 0.08), rgba(108, 92, 231, 0.08));
-    border-radius: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 120px;
-    color: #4a9eff;
-    opacity: 0.6;
-    border: 1px solid rgba(74, 158, 255, 0.1);
-} */
 
     /* ============================================
        RESPONSIVE: TABLETS & MOBILE
@@ -486,62 +355,13 @@
             font-size:24px;
         }
 
-        @media (max-width:768px) {
-    /* ... your existing styles ... */
-
-    .hero-container {
-        flex-direction: column;
-        gap: 30px;
-        text-align: center;
-    }
-    
-    .hero-content {
-        max-width: 100%;
-        text-align: center;
-    }
-    
-    .hero-image {
-        max-width: 100%;
-        order: -1; /* Image appears above text on mobile */
-    }
-    
-    .hero-illustration {
-        max-width: 80%;
-        margin: 0 auto;
-    }
-    
-    .hero-section .hero-title {
-        font-size: 32px;
-        text-align: center;
-    }
-    
-    .hero-section .hero-subtitle {
-        max-width: 100%;
-        text-align: center;
-        font-size: 15px;
-    }
-    
-    .hero-section .hero-buttons {
-        justify-content: center;
-    }
-    
-    .hero-stats {
-        justify-content: center;
-        gap: 20px;
-    }
-}
-
-/*hero icon*/
-/* .hero-image {
-        max-width: 100%;
-        order: -1; /* Image appears above text on mobile */
-    }
-    
-    .hero-image .icon-wrapper {
-        max-width: 200px;
-        font-size: 60px;
-        padding: 30px;
-    } */
+        /* Stats */
+        .hero-stats {
+            gap:20px;
+        }
+        .hero-stats .stat .number {
+            font-size:20px;
+        }
 
         /* Footer */
         .footer {
@@ -673,51 +493,36 @@
 
         <!-- HERO SECTION -->
         <section class="hero-section">
-            <div class="hero-container">
-                <!-- LEFT SIDE: Text Content -->
-                <div class="hero-content">
-                    <h1 class="hero-title">
-                        Know Your Rights. <br><span>Stay Safe Online.</span>
-                    </h1>
-                    <p class="hero-subtitle">
-                        Digital Rights Hub empowers Ugandan youth with knowledge about digital rights, 
-                        online safety, and cybersecurity through curated resources, gamified quizzes, 
-                        and an AI-powered assistant.
-                    </p>
-                    <div class="hero-buttons">
-                        {% if user.is_authenticated %}
-                            <a href="/chat/" class="btn-primary-custom">
-                                <i class="fas fa-comment-dots"></i> Start Chatting
-                            </a>
-                        {% else %}
-                            <a href="{% url 'register' %}" class="btn-primary-custom">
-                                <i class="fas fa-user-plus"></i> Get Started
-                            </a>
-                        {% endif %}
-                        <a href="/learn/" class="btn-outline">Explore Resources</a>
-                    </div>
-                    <div class="hero-stats">
-                        <div class="stat">
-                            <div class="number">{{ total_resources|default:0 }}</div>
-                            <div class="label">Learning Resources</div>
-                        </div>
-                        <div class="stat">
-                            <div class="number">{{ total_quizzes|default:0 }}</div>
-                            <div class="label">Quizzes</div>
-                        </div>
-                    </div>
+            <div>
+                <h1 class="hero-title">
+                    Know Your Rights. <br><span>Stay Safe Online.</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Digital Rights Hub empowers Ugandan youth with knowledge about digital rights, 
+                    online safety, and cybersecurity through curated resources, gamified quizzes, 
+                    and an AI-powered assistant.
+                </p>
+                <div class="hero-buttons">
+                    {% if user.is_authenticated %}
+                        <a href="/chat/" class="btn-primary-custom">
+                            <i class="fas fa-comment-dots"></i> Start Chatting
+                        </a>
+                    {% else %}
+                        <a href="{% url 'register' %}" class="btn-primary-custom">
+                            <i class="fas fa-user-plus"></i> Get Started
+                        </a>
+                    {% endif %}
+                    <a href="/learn/" class="btn-outline">Explore Resources</a>
                 </div>
-                
-                <!-- RIGHT SIDE: Image -->
-                <div class="hero-image">
-                    {% load static %}
-                    <img src="{% static 'chatbot/images/digital-rights-illustration.jpg' %}" 
-                        alt="Digital Rights Illustration" 
-                        class="hero-illustration">
-                        <!-- <div class="icon-wrapper">
-                            <i class="fas fa-shield-halved"></i>
-                        </div> -->
-
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="number">{{ total_resources|default:0 }}</div>
+                        <div class="label">Learning Resources</div>
+                    </div>
+                    <div class="stat">
+                        <div class="number">{{ total_quizzes|default:0 }}</div>
+                        <div class="label">Quizzes</div>
+                    </div>
                 </div>
             </div>
         </section>
