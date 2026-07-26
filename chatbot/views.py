@@ -1,9 +1,12 @@
+import random
 from django.core.cache import cache
+from django.core.mail import send_mail
 from functools import wraps
 from django.http import JsonResponse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.messages import get_messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse, HttpResponseServerError
@@ -11,6 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.db.models import Q
 from django.contrib import messages
+from functools import wraps
 import json
 import uuid
 import re
@@ -27,6 +31,44 @@ from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion,
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+
+# ===== VERIFICATION CODE HELPERS =====
+
+def generate_verification_code():
+    """Generate a 6-digit numeric code."""
+    return f"{random.randint(100000, 999999)}"
+
+def send_verification_email(user_email, code, username):
+    """Send the 6-digit code to the user's email."""
+    subject = "🔐 Verify Your Digital Rights Hub Account"
+    message = f"""
+Hello {username},
+
+Thank you for registering with Digital Rights Hub!
+
+Your verification code is: 🔑 {code}
+
+This code expires in 10 minutes.
+
+Please enter this code on the verification page to activate your account.
+
+If you did not create this account, please ignore this email.
+
+Stay safe,
+Digital Rights Hub Team
+"""
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user_email],
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
+        return False
 
 # ===== RATE LIMITING DECORATOR =====
 def rate_limit(key_prefix, rate=5, period=60):
@@ -344,8 +386,260 @@ def quiz_take(request, quiz_id):
         return HttpResponseServerError(f"Error: {e}\n{traceback.format_exc()}")
 
 # ---------- AUTHENTICATION VIEWS ----------
-@rate_limit('register', rate=10, period=60)  # 10 attempts per minute for registration
+@rate_limit('register', rate=10, period=60)
 def register(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        
+        # Check if passwords match
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'chatbot/register.html')
+        
+        # Password strength validation
+        try:
+            validate_password(password1, user=None)
+        except ValidationError as e:
+            for error in e.messages:
+                messages.error(request, error)
+            return render(request, 'chatbot/register.html')
+        
+        # Check if username exists
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already taken.')
+            return render(request, 'chatbot/register.html')
+        
+        # Check if email exists
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email already registered.')
+            return render(request, 'chatbot/register.html')
+        
+        # ===== CREATE USER (INACTIVE) =====
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password1,
+            is_active=False
+        )
+        user.save()
+        
+        # ===== GENERATE AND SEND VERIFICATION CODE =====
+        code = generate_verification_code()
+        cache.set(f'verify_code_{user.id}', code, 600)  # 10 minutes
+        
+        # Store user ID in session
+        request.session['pending_user_id'] = user.id
+        
+        # Send email
+        success = send_verification_email(user.email, code, user.username)
+        
+        if success:
+            messages.success(
+                request,
+                f"Account created! A verification code has been sent to {email}. "
+                "Please check your inbox and enter the code to activate your account."
+            )
+            return redirect('verify_email')
+        else:
+            user.delete()
+            messages.error(request, "Could not send verification email. Please try again.")
+            return render(request, 'chatbot/register.html')
+    
+    return render(request, 'chatbot/register.html')@rate_limit('register', rate=10, period=60)
+def register(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        
+        # Check if passwords match
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'chatbot/register.html')
+        
+        # Password strength validation
+        try:
+            validate_password(password1, user=None)
+        except ValidationError as e:
+            for error in e.messages:
+                messages.error(request, error)
+            return render(request, 'chatbot/register.html')
+        
+        # Check if username exists
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already taken.')
+            return render(request, 'chatbot/register.html')
+        
+        # Check if email exists
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email already registered.')
+            return render(request, 'chatbot/register.html')
+        
+        # ===== CREATE USER (INACTIVE) =====
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password1,
+            is_active=False
+        )
+        user.save()
+        
+        # ===== GENERATE AND SEND VERIFICATION CODE =====
+        code = generate_verification_code()
+        cache.set(f'verify_code_{user.id}', code, 600)  # 10 minutes
+        
+        # Store user ID in session
+        request.session['pending_user_id'] = user.id
+        
+        # Send email
+        success = send_verification_email(user.email, code, user.username)
+        
+        if success:
+            messages.success(
+                request,
+                f"Account created! A verification code has been sent to {email}. "
+                "Please check your inbox and enter the code to activate your account."
+            )
+            return redirect('verify_email')
+        else:
+            user.delete()
+            messages.error(request, "Could not send verification email. Please try again.")
+            return render(request, 'chatbot/register.html')
+    
+    return render(request, 'chatbot/register.html')@rate_limit('register', rate=10, period=60)
+def register(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        
+        # Check if passwords match
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'chatbot/register.html')
+        
+        # Password strength validation
+        try:
+            validate_password(password1, user=None)
+        except ValidationError as e:
+            for error in e.messages:
+                messages.error(request, error)
+            return render(request, 'chatbot/register.html')
+        
+        # Check if username exists
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already taken.')
+            return render(request, 'chatbot/register.html')
+        
+        # Check if email exists
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email already registered.')
+            return render(request, 'chatbot/register.html')
+        
+        # ===== CREATE USER (INACTIVE) =====
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password1,
+            is_active=False
+        )
+        user.save()
+        
+        # ===== GENERATE AND SEND VERIFICATION CODE =====
+        code = generate_verification_code()
+        cache.set(f'verify_code_{user.id}', code, 600)  # 10 minutes
+        
+        # Store user ID in session
+        request.session['pending_user_id'] = user.id
+        
+        # Send email
+        success = send_verification_email(user.email, code, user.username)
+        
+        if success:
+            messages.success(
+                request,
+                f"Account created! A verification code has been sent to {email}. "
+                "Please check your inbox and enter the code to activate your account."
+            )
+            return redirect('verify_email')
+        else:
+            user.delete()
+            messages.error(request, "Could not send verification email. Please try again.")
+            return render(request, 'chatbot/register.html')
+    
+    return render(request, 'chatbot/register.html')
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        
+        # Check if passwords match
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'chatbot/register.html')
+        
+        # Password strength validation
+        try:
+            validate_password(password1, user=None)
+        except ValidationError as e:
+            for error in e.messages:
+                messages.error(request, error)
+            return render(request, 'chatbot/register.html')
+        
+        # Check if username exists
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already taken.')
+            return render(request, 'chatbot/register.html')
+        
+        # Check if email exists
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email already registered.')
+            return render(request, 'chatbot/register.html')
+        
+        # ===== CREATE USER (INACTIVE) =====
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password1,
+            is_active=False  # <-- USER CANNOT LOGIN YET
+        )
+        user.save()
+        
+        # ===== GENERATE AND SEND VERIFICATION CODE =====
+        code = generate_verification_code()
+        
+        # Store the code in cache (expires in 10 minutes)
+        cache.set(f'verify_code_{user.id}', code, 600)  # 600 seconds = 10 minutes
+        
+        # Store user ID in session temporarily
+        request.session['pending_user_id'] = user.id
+        
+        # Send the verification email
+        success = send_verification_email(user.email, code, user.username)
+        
+        if success:
+            messages.success(
+                request,
+                f"Account created! A verification code has been sent to {email}. "
+                "Please check your inbox and enter the code to activate your account."
+            )
+            return redirect('verify_email')
+        else:
+            # If email fails, delete the user and show error
+            user.delete()
+            messages.error(
+                request,
+                "Could not send verification email. Please try again."
+            )
+            return render(request, 'chatbot/register.html')
+    
+    return render(request, 'chatbot/register.html')
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
@@ -393,6 +687,33 @@ def register(request):
 
 @rate_limit('login', rate=5, period=60)
 def user_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            # ===== CHECK IF USER IS ACTIVE =====
+            if not user.is_active:
+                messages.error(
+                    request,
+                    "Your account has not been verified. "
+                    "Please check your email for the verification code."
+                )
+                return render(request, 'chatbot/login.html')
+            
+            # ===== LOGIN SUCCESS =====
+            auth_login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")
+            
+            if user.is_superuser or user.is_staff:
+                return redirect('admin_dashboard')
+            return redirect('profile')
+        else:
+            messages.error(request, "Invalid username or password.")
+    
+    return render(request, 'chatbot/login.html')
     if request.user.is_authenticated:
         return redirect('profile')
     if request.method == 'POST':
@@ -749,3 +1070,57 @@ def home(request):
         'total_quizzes': total_quizzes,
     }
     return render(request, 'chatbot/home.html', context)
+
+@rate_limit('verify_email', rate=5, period=60)
+def verify_email(request):
+    """Verify the user's email with the 6-digit code."""
+    
+    # Check if there's a pending user
+    user_id = request.session.get('pending_user_id')
+    if not user_id:
+        messages.error(request, "Session expired. Please register again.")
+        return redirect('register')
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, "User not found. Please register again.")
+        return redirect('register')
+    
+    # If user is already active, redirect to login
+    if user.is_active:
+        messages.info(request, "Your account is already verified. Please login.")
+        return redirect('login')
+    
+    if request.method == 'POST':
+        entered_code = request.POST.get('code')
+        
+        if not entered_code:
+            messages.error(request, "Please enter the verification code.")
+            return render(request, 'chatbot/verify_email.html', {'email': user.email})
+        
+        # Get the stored code from cache
+        stored_code = cache.get(f'verify_code_{user.id}')
+        
+        if not stored_code:
+            messages.error(request, "Verification code has expired. Please register again.")
+            request.session.pop('pending_user_id', None)
+            return redirect('register')
+        
+        if entered_code == stored_code:
+            # SUCCESS! Activate the user
+            user.is_active = True
+            user.save()
+            
+            # Clean up
+            cache.delete(f'verify_code_{user.id}')
+            request.session.pop('pending_user_id', None)
+            
+            messages.success(request, "Email verified successfully! You can now log in.")
+            return redirect('login')
+        else:
+            messages.error(request, "Invalid verification code. Please try again.")
+            return render(request, 'chatbot/verify_email.html', {'email': user.email})
+    
+    # GET request - show the verification form
+    return render(request, 'chatbot/verify_email.html', {'email': user.email})
