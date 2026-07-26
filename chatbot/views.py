@@ -19,6 +19,9 @@ from datetime import timedelta
 
 from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion, QuizAttempt, QuizResponse, Profile
 
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+
 # --- NO GEMINI CLIENT AT STARTUP! ---
 # Gemini will be loaded ONLY when needed in the function below
 
@@ -313,20 +316,44 @@ def register(request):
         email = request.POST.get('email')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
+        
+        # Check if passwords match
         if password1 != password2:
             messages.error(request, 'Passwords do not match.')
             return render(request, 'chatbot/register.html')
+        
+        # ===== PASSWORD STRENGTH VALIDATION (NEW) =====
+        # This uses Django's AUTH_PASSWORD_VALIDATORS from settings.py
+        try:
+            validate_password(password1, user=None)
+        except ValidationError as e:
+            # Show each validation error to the user
+            for error in e.messages:
+                messages.error(request, error)
+            return render(request, 'chatbot/register.html')
+        # ===== END PASSWORD VALIDATION =====
+        
+        # Check if username exists
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Username already taken.')
             return render(request, 'chatbot/register.html')
+        
+        # Check if email exists
         if User.objects.filter(email=email).exists():
             messages.error(request, 'Email already registered.')
             return render(request, 'chatbot/register.html')
-        user = User.objects.create_user(username=username, email=email, password=password1)
+        
+        # Create user
+        user = User.objects.create_user(
+            username=username, 
+            email=email, 
+            password=password1
+        )
         user.save()
         login(request, user)
         messages.success(request, f'Welcome, {username}!')
         return redirect('profile')
+    
     return render(request, 'chatbot/register.html')
 
 def user_login(request):
