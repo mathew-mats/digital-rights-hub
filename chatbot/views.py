@@ -5,7 +5,7 @@ from functools import wraps
 from django.http import JsonResponse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.messages import get_messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
@@ -1044,14 +1044,24 @@ def admin_toggle_user_status(request, user_id):
     messages.success(request, f'User {user.username} has been {status}.')
     return redirect('admin_users')
 
-@staff_member_required(login_url='admin_login')
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
 def admin_delete_user(request, user_id):
-    logger.warning(f'AUDIT: Admin {request.user.username} deleted User ID {user_id} - {user.title}')
-    """Delete a user account."""
+    # Prevent deleting yourself
+    if request.user.id == user_id:
+        messages.error(request, "You cannot delete your own account.")
+        return redirect('admin_users')
+    
+    # Get the user or show 404
     user = get_object_or_404(User, id=user_id)
-    username = user.username
+    
+    # Log the audit BEFORE deleting
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted User ID {user_id} - {user.username}')
+    
+    # Delete the user
     user.delete()
-    messages.success(request, f'User {username} has been deleted.')
+    
+    messages.success(request, f"User '{user.username}' deleted successfully.")
     return redirect('admin_users')
 
 

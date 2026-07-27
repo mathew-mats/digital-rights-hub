@@ -165,12 +165,16 @@ PASSWORD_HASHERS = [
 
 # ===== EMAIL SETTINGS =====
 if DEBUG:
-    # LOCAL DEVELOPMENT: Print emails to the console (no real sending)
+    # LOCAL DEVELOPMENT: Print emails to console (no real sending)
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # PRODUCTION: Use SendGrid
-    EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
-    SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
-    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+    # PRODUCTION: Use Gmail SMTP (works on PythonAnywhere)
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'lukengemathias4@gmail.com')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'lukengemathias4@gmail.com')
 
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'lukengemathias4@gmail.com')
