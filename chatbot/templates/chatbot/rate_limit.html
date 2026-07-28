@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Too Many Attempts | Digital Rights Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .rate-limit-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #eef2f6;
+            padding: 48px 40px;
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+        }
+        .rate-limit-card .icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #fee2e2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+            color: #ef4444;
+        }
+        .rate-limit-card h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #1a2332;
+            margin-bottom: 8px;
+        }
+        .rate-limit-card p {
+            font-size: 15px;
+            color: #5a7a9a;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        .rate-limit-card .timer {
+            font-size: 48px;
+            font-weight: 700;
+            color: #4a9eff;
+            margin: 16px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .rate-limit-card .timer span {
+            font-size: 18px;
+            color: #8a9bb5;
+            font-weight: 400;
+        }
+        .rate-limit-card .btn-retry {
+            display: inline-block;
+            background: linear-gradient(135deg, #4a9eff, #6c5ce7);
+            color: white;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(74, 158, 255, 0.25);
+            margin-top: 8px;
+        }
+        .rate-limit-card .btn-retry:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(74, 158, 255, 0.35);
+        }
+        .rate-limit-card .btn-retry:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .rate-limit-card .help-text {
+            font-size: 13px;
+            color: #8a9bb5;
+            margin-top: 16px;
+            border-top: 1px solid #eef2f6;
+            padding-top: 16px;
+        }
+        .rate-limit-card .help-text a {
+            color: #4a9eff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .rate-limit-card .help-text a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 480px) {
+            .rate-limit-card { padding: 32px 20px; }
+            .rate-limit-card h1 { font-size: 20px; }
+            .rate-limit-card .timer { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="rate-limit-card">
+        <div class="icon">
+            <i class="fas fa-shield-halved"></i>
+        </div>
+        <h1> Too Many Attempts</h1>
+        <p>
+            You've exceeded the maximum number of allowed attempts for 
+            <strong>{{ key_prefix|title }}</strong>.
+        </p>
+        <p style="font-size: 14px; color: #8a9bb5;">
+            Please wait before trying again.
+        </p>
+
+        <div class="timer" id="countdown">
+            {{ period }} <span>seconds</span>
+        </div>
+
+        <a href="javascript:void(0)" class="btn-retry" id="retryBtn" disabled>
+            <i class="fas fa-clock" style="margin-right: 8px;"></i> Please Wait...
+        </a>
+
+        <div class="help-text">
+    <i class="fas fa-info-circle"></i>
+    Need help? <a href="{% url 'contact' %}">Contact Support</a>
+</div>
+    </div>
+
+    <script>
+        let timeLeft = {{ period }};
+        const timerElement = document.getElementById('countdown');
+        const retryBtn = document.getElementById('retryBtn');
+
+        const interval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                timerElement.innerHTML = '0 <span>seconds</span>';
+                retryBtn.disabled = false;
+                retryBtn.innerHTML = '<i class="fas fa-arrow-right" style="margin-right: 8px;"></i> Try Again';
+                retryBtn.href = 'javascript:location.reload()';
+                retryBtn.style.background = 'linear-gradient(135deg, #4a9eff, #6c5ce7)';
+                retryBtn.style.cursor = 'pointer';
+            } else {
+                timerElement.innerHTML = `${timeLeft} <span>seconds</span>`;
+            }
+        }, 1000);
+
+        // Auto-reload when timer hits 0
+        retryBtn.addEventListener('click', function() {
+            if (!this.disabled) {
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

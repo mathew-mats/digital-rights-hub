@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -41,4 +41,7 @@ urlpatterns = [
     path('admin-users/', views.admin_users, name='admin_users'),
     path('admin-users/toggle/<int:user_id>/', views.admin_toggle_user_status, name='admin_toggle_user_status'),
     path('admin-users/delete/<int:user_id>/', views.admin_delete_user, name='admin_delete_user'),
+    path('captcha/', include('captcha.urls')),
+    path('contact/', views.contact, name='contact'),
+    
 ]

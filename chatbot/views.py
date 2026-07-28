@@ -14,23 +14,23 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.db.models import Q
 from django.contrib import messages
-from functools import wraps
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
+from django.utils import timezone
+from datetime import timedelta
+from captcha.models import CaptchaStore
 import json
 import uuid
 import re
 import traceback
 import logging
+
 logger = logging.getLogger(__name__)
 
-# ---------- ADMIN USER MANAGEMENT ----------
-from django.contrib.auth.models import User
-from django.utils import timezone
-from datetime import timedelta
-
+# ===== MODELS =====
 from .models import FAQ, ChatSession, ChatMessage, Resource, Quiz, QuizQuestion, QuizAttempt, QuizResponse, Profile
-
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
 
 # ===== VERIFICATION CODE HELPERS =====
 
@@ -70,42 +70,37 @@ Digital Rights Hub Team
         logger.error(f"Failed to send verification email: {e}")
         return False
 
+
 # ===== RATE LIMITING DECORATOR =====
+
 def rate_limit(key_prefix, rate=5, period=60):
-    """
-    Limits login attempts to 'rate' per 'period' seconds.
-    Example: @rate_limit('login', rate=5, period=60) = 5 attempts per minute.
-    """
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(request, *args, **kwargs):
             if request.method == 'POST':
-                # Use IP address as part of the cache key
                 ip = request.META.get('REMOTE_ADDR')
                 key = f'rate_limit_{key_prefix}_{ip}'
-                
-                # Get current attempt count
                 attempts = cache.get(key, 0)
                 
                 if attempts >= rate:
-                    return JsonResponse({
-                        'error': f'Too many login attempts. Please wait {period} seconds.'
-                    }, status=429)
+                    # Instead of JSON, render a nice page
+                    return render(request, 'chatbot/rate_limit.html', {
+                        'period': period,
+                        'key_prefix': key_prefix
+                    })
                 
-                # Increment attempts
                 cache.set(key, attempts + 1, period)
             
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
 
-# --- NO GEMINI CLIENT AT STARTUP! ---
-# Gemini will be loaded ONLY when needed in the function below
 
-MODEL_NAME = 'gemini-2.5-flash'
+# ===== GEMINI / CHATBOT =====
+
+MODEL_NAME = 'gemini-2.0-flash'
 MAX_HISTORY = 10
 
-# --- Synonym dictionary for fallback ---
 SYNONYMS = {
     'privacy': ['private', 'personal data', 'data protection', 'confidential'],
     'rights': ['right', 'entitlement', 'freedom', 'legal'],
@@ -117,7 +112,6 @@ SYNONYMS = {
     'uganda': ['ugandan', 'ug', 'local'],
 }
 
-# ---------- CHATBOT WITH MEMORY ----------
 
 def get_conversation_history(session):
     """Get last N messages from session."""
@@ -127,6 +121,7 @@ def get_conversation_history(session):
         role = 'user' if not msg.is_bot else 'assistant'
         history.append({'role': role, 'content': msg.message})
     return history
+
 
 def get_faq_fallback(user_message):
     """Fallback FAQ matching."""
@@ -155,6 +150,7 @@ def get_faq_fallback(user_message):
     return ("I don't have a specific answer for that. "
             "Please explore our Learning Resources or contact the Uganda Youth Internet Governance Forum (UYIGF).")
 
+
 def get_gemini_response_with_memory(user_message, history):
     """Smart hybrid: FAQ first, Gemini fallback (lazy loaded)."""
     # STEP 1: CHECK FAQ DATABASE FIRST
@@ -162,13 +158,11 @@ def get_gemini_response_with_memory(user_message, history):
     if faq_answer and "I don't have a specific answer" not in faq_answer:
         return faq_answer
 
-    # STEP 2: NO FAQ MATCH - TRY GEMINI (Lazy load)
+    # STEP 2: NO FAQ MATCH - TRY GEMINI
     try:
-        # --- Lazy load Gemini ONLY when needed ---
         from google import genai
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         
-        # Build the prompt
         history_text = ""
         for entry in history:
             role = "User" if entry['role'] == 'user' else "Assistant"
@@ -210,6 +204,7 @@ Assistant:"""
                 "Please check our Learning Hub for resources on "
                 "digital rights, AI policy, and cybersecurity in Uganda!")
 
+
 @csrf_exempt
 def chat_api(request):
     if request.method == 'POST':
@@ -244,10 +239,27 @@ def chat_api(request):
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+
 def chat_home(request):
     return render(request, 'chatbot/index.html')
 
-# ---------- LEARNING HUB ----------
+
+# ===== HOME / LANDING =====
+
+def home(request):
+    total_users = User.objects.count()
+    total_resources = Resource.objects.count()
+    total_quizzes = Quiz.objects.count()
+    
+    context = {
+        'total_users': total_users,
+        'total_resources': total_resources,
+        'total_quizzes': total_quizzes,
+    }
+    return render(request, 'chatbot/home.html', context)
+
+
+# ===== LEARNING HUB =====
 
 def learning_hub(request):
     category = request.GET.get('category', '')
@@ -274,6 +286,7 @@ def learning_hub(request):
     }
     return render(request, 'chatbot/learning_hub.html', context)
 
+
 def resource_detail(request, resource_id):
     try:
         resource = Resource.objects.get(id=resource_id, is_published=True)
@@ -281,7 +294,8 @@ def resource_detail(request, resource_id):
     except Resource.DoesNotExist:
         return render(request, 'chatbot/404.html', status=404)
 
-# ---------- QUIZ VIEWS ----------
+
+# ===== QUIZZES =====
 
 def quiz_list(request):
     category = request.GET.get('category', '')
@@ -301,6 +315,7 @@ def quiz_list(request):
         'current_difficulty': difficulty,
     }
     return render(request, 'chatbot/quiz_list.html', context)
+
 
 def quiz_detail(request, quiz_id):
     quiz = get_object_or_404(Quiz, id=quiz_id, is_published=True)
@@ -323,6 +338,7 @@ def quiz_detail(request, quiz_id):
     }
     return render(request, 'chatbot/quiz_detail.html', context)
 
+
 def quiz_take(request, quiz_id):
     try:
         quiz = get_object_or_404(Quiz, id=quiz_id, is_published=True)
@@ -333,7 +349,6 @@ def quiz_take(request, quiz_id):
             if total == 0:
                 return HttpResponse("No questions in this quiz.", status=400)
             
-            # --- FIX: Ensure session exists ---
             if not request.session.session_key:
                 request.session.create()
             
@@ -348,7 +363,6 @@ def quiz_take(request, quiz_id):
                 total_questions=total,
                 passed=False
             )
-            # ... rest of the function
             for question in questions:
                 answer_key = f'question_{question.id}'
                 user_answer = request.POST.get(answer_key)
@@ -385,7 +399,9 @@ def quiz_take(request, quiz_id):
     except Exception as e:
         return HttpResponseServerError(f"Error: {e}\n{traceback.format_exc()}")
 
-# ---------- AUTHENTICATION VIEWS ----------
+
+# ===== AUTHENTICATION =====
+
 @rate_limit('register', rate=10, period=60)
 def register(request):
     if request.method == 'POST':
@@ -394,12 +410,10 @@ def register(request):
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
         
-        # Check if passwords match
         if password1 != password2:
             messages.error(request, 'Passwords do not match.')
             return render(request, 'chatbot/register.html')
         
-        # Password strength validation
         try:
             validate_password(password1, user=None)
         except ValidationError as e:
@@ -407,17 +421,14 @@ def register(request):
                 messages.error(request, error)
             return render(request, 'chatbot/register.html')
         
-        # Check if username exists
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Username already taken.')
             return render(request, 'chatbot/register.html')
         
-        # Check if email exists
         if User.objects.filter(email=email).exists():
             messages.error(request, 'Email already registered.')
             return render(request, 'chatbot/register.html')
         
-        # ===== CREATE USER (INACTIVE) =====
         user = User.objects.create_user(
             username=username,
             email=email,
@@ -426,14 +437,10 @@ def register(request):
         )
         user.save()
         
-        # ===== GENERATE AND SEND VERIFICATION CODE =====
         code = generate_verification_code()
-        cache.set(f'verify_code_{user.id}', code, 600)  # 10 minutes
-        
-        # Store user ID in session
+        cache.set(f'verify_code_{user.id}', code, 600)
         request.session['pending_user_id'] = user.id
         
-        # Send email
         success = send_verification_email(user.email, code, user.username)
         
         if success:
@@ -447,286 +454,102 @@ def register(request):
             user.delete()
             messages.error(request, "Could not send verification email. Please try again.")
             return render(request, 'chatbot/register.html')
-    
-    return render(request, 'chatbot/register.html')@rate_limit('register', rate=10, period=60)
-def register(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        
-        # Check if passwords match
-        if password1 != password2:
-            messages.error(request, 'Passwords do not match.')
-            return render(request, 'chatbot/register.html')
-        
-        # Password strength validation
-        try:
-            validate_password(password1, user=None)
-        except ValidationError as e:
-            for error in e.messages:
-                messages.error(request, error)
-            return render(request, 'chatbot/register.html')
-        
-        # Check if username exists
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already taken.')
-            return render(request, 'chatbot/register.html')
-        
-        # Check if email exists
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already registered.')
-            return render(request, 'chatbot/register.html')
-        
-        # ===== CREATE USER (INACTIVE) =====
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password1,
-            is_active=False
-        )
-        user.save()
-        
-        # ===== GENERATE AND SEND VERIFICATION CODE =====
-        code = generate_verification_code()
-        cache.set(f'verify_code_{user.id}', code, 600)  # 10 minutes
-        
-        # Store user ID in session
-        request.session['pending_user_id'] = user.id
-        
-        # Send email
-        success = send_verification_email(user.email, code, user.username)
-        
-        if success:
-            messages.success(
-                request,
-                f"Account created! A verification code has been sent to {email}. "
-                "Please check your inbox and enter the code to activate your account."
-            )
-            return redirect('verify_email')
-        else:
-            user.delete()
-            messages.error(request, "Could not send verification email. Please try again.")
-            return render(request, 'chatbot/register.html')
-    
-    return render(request, 'chatbot/register.html')@rate_limit('register', rate=10, period=60)
-def register(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        
-        # Check if passwords match
-        if password1 != password2:
-            messages.error(request, 'Passwords do not match.')
-            return render(request, 'chatbot/register.html')
-        
-        # Password strength validation
-        try:
-            validate_password(password1, user=None)
-        except ValidationError as e:
-            for error in e.messages:
-                messages.error(request, error)
-            return render(request, 'chatbot/register.html')
-        
-        # Check if username exists
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already taken.')
-            return render(request, 'chatbot/register.html')
-        
-        # Check if email exists
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already registered.')
-            return render(request, 'chatbot/register.html')
-        
-        # ===== CREATE USER (INACTIVE) =====
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password1,
-            is_active=False
-        )
-        user.save()
-        
-        # ===== GENERATE AND SEND VERIFICATION CODE =====
-        code = generate_verification_code()
-        cache.set(f'verify_code_{user.id}', code, 600)  # 10 minutes
-        
-        # Store user ID in session
-        request.session['pending_user_id'] = user.id
-        
-        # Send email
-        success = send_verification_email(user.email, code, user.username)
-        
-        if success:
-            messages.success(
-                request,
-                f"Account created! A verification code has been sent to {email}. "
-                "Please check your inbox and enter the code to activate your account."
-            )
-            return redirect('verify_email')
-        else:
-            user.delete()
-            messages.error(request, "Could not send verification email. Please try again.")
-            return render(request, 'chatbot/register.html')
-    
-    return render(request, 'chatbot/register.html')
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        
-        # Check if passwords match
-        if password1 != password2:
-            messages.error(request, 'Passwords do not match.')
-            return render(request, 'chatbot/register.html')
-        
-        # Password strength validation
-        try:
-            validate_password(password1, user=None)
-        except ValidationError as e:
-            for error in e.messages:
-                messages.error(request, error)
-            return render(request, 'chatbot/register.html')
-        
-        # Check if username exists
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already taken.')
-            return render(request, 'chatbot/register.html')
-        
-        # Check if email exists
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already registered.')
-            return render(request, 'chatbot/register.html')
-        
-        # ===== CREATE USER (INACTIVE) =====
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password1,
-            is_active=False  # <-- USER CANNOT LOGIN YET
-        )
-        user.save()
-        
-        # ===== GENERATE AND SEND VERIFICATION CODE =====
-        code = generate_verification_code()
-        
-        # Store the code in cache (expires in 10 minutes)
-        cache.set(f'verify_code_{user.id}', code, 600)  # 600 seconds = 10 minutes
-        
-        # Store user ID in session temporarily
-        request.session['pending_user_id'] = user.id
-        
-        # Send the verification email
-        success = send_verification_email(user.email, code, user.username)
-        
-        if success:
-            messages.success(
-                request,
-                f"Account created! A verification code has been sent to {email}. "
-                "Please check your inbox and enter the code to activate your account."
-            )
-            return redirect('verify_email')
-        else:
-            # If email fails, delete the user and show error
-            user.delete()
-            messages.error(
-                request,
-                "Could not send verification email. Please try again."
-            )
-            return render(request, 'chatbot/register.html')
-    
-    return render(request, 'chatbot/register.html')
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        
-        # Check if passwords match
-        if password1 != password2:
-            messages.error(request, 'Passwords do not match.')
-            return render(request, 'chatbot/register.html')
-        
-        # ===== PASSWORD STRENGTH VALIDATION (NEW) =====
-        # This uses Django's AUTH_PASSWORD_VALIDATORS from settings.py
-        try:
-            validate_password(password1, user=None)
-        except ValidationError as e:
-            # Show each validation error to the user
-            for error in e.messages:
-                messages.error(request, error)
-            return render(request, 'chatbot/register.html')
-        # ===== END PASSWORD VALIDATION =====
-        
-        # Check if username exists
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already taken.')
-            return render(request, 'chatbot/register.html')
-        
-        # Check if email exists
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already registered.')
-            return render(request, 'chatbot/register.html')
-        
-        # Create user
-        user = User.objects.create_user(
-            username=username, 
-            email=email, 
-            password=password1
-        )
-        user.save()
-        login(request, user)
-        messages.success(request, f'Welcome, {username}!')
-        return redirect('profile')
     
     return render(request, 'chatbot/register.html')
 
+
+def contact(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        message = request.POST.get('message')
+        
+        # Send email to admin (optional)
+        try:
+            send_mail(
+                f"Contact Form: {name}",
+                f"From: {email}\n\nMessage:\n{message}",
+                settings.DEFAULT_FROM_EMAIL,
+                ['lukengemathias4@gmail.com'],  # Your email
+                fail_silently=False,
+            )
+            messages.success(request, "Your message has been sent! We'll get back to you soon.")
+            return redirect('contact')
+        except Exception as e:
+            messages.error(request, "Could not send your message. Please try again.")
+    
+    return render(request, 'chatbot/contact.html')
+
+
+from .forms import LoginForm
+
 @rate_limit('login', rate=5, period=60)
 def user_login(request):
+    ip = request.META.get('REMOTE_ADDR')
+    failed_key = f'login_failed_{ip}'
+    failed_attempts = cache.get(failed_key, 0)
+    show_captcha = failed_attempts >= 3
+
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        
+        form = LoginForm(request.POST)
+        # If CAPTCHA should be shown, make the field required
+        if show_captcha:
+            form.fields['captcha'].required = True
+            if not form.is_valid():
+                messages.error(request, "Invalid CAPTCHA. Please try again.")
+                return render(request, 'chatbot/login.html', {
+                    'form': form,
+                    'show_captcha': True,
+                    'failed_attempts': failed_attempts,
+                    'remaining_attempts': max(0, 5 - failed_attempts)
+                })
+        else:
+            # If no CAPTCHA, just validate username/password manually
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            user = authenticate(request, username=username, password=password)
+            if user is None:
+                failed_attempts = cache.get(failed_key, 0) + 1
+                cache.set(failed_key, failed_attempts, 300)
+                messages.error(request, "Invalid credentials.")
+                return redirect('login')
+            else:
+                # Login success
+                cache.delete(failed_key)
+                auth_login(request, user)
+                messages.success(request, f"Welcome back, {user.username}!")
+                return redirect('profile')
+        # If we reach here, form.is_valid() was True (CAPTCHA passed), so authenticate
+        username = form.cleaned_data['username']
+        password = form.cleaned_data['password']
         user = authenticate(request, username=username, password=password)
-        
         if user is not None:
-            # ===== CHECK IF USER IS ACTIVE =====
             if not user.is_active:
-                messages.error(
-                    request,
-                    "Your account has not been verified. "
-                    "Please check your email for the verification code."
-                )
-                return render(request, 'chatbot/login.html')
-            
-            # ===== LOGIN SUCCESS =====
+                messages.error(request, "Account not verified.")
+                return render(request, 'chatbot/login.html', {'form': form, 'show_captcha': show_captcha})
+            cache.delete(failed_key)
             auth_login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
-            
-            if user.is_superuser or user.is_staff:
-                return redirect('admin_dashboard')
             return redirect('profile')
         else:
-            messages.error(request, "Invalid username or password.")
-    
-    return render(request, 'chatbot/login.html')
-    if request.user.is_authenticated:
-        return redirect('profile')
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            messages.success(request, f'Welcome back, {username}!')
-            return redirect('profile')
-        else:
-            messages.error(request, 'Invalid username or password.')
-    return render(request, 'chatbot/login.html')
+            failed_attempts = cache.get(failed_key, 0) + 1
+            cache.set(failed_key, failed_attempts, 300)
+            messages.error(request, "Invalid credentials.")
+            return render(request, 'chatbot/login.html', {
+                'form': form,
+                'show_captcha': show_captcha,
+                'failed_attempts': failed_attempts,
+                'remaining_attempts': max(0, 5 - failed_attempts)
+            })
+    else:
+        form = LoginForm()
+        return render(request, 'chatbot/login.html', {
+            'form': form,
+            'show_captcha': show_captcha,
+            'failed_attempts': failed_attempts,
+            'remaining_attempts': max(0, 5 - failed_attempts)
+        })
+
 
 def user_logout(request):
     storage = get_messages(request)
@@ -735,6 +558,52 @@ def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
     return redirect('chat_home')
+
+
+@rate_limit('verify_email', rate=5, period=60)
+def verify_email(request):
+    user_id = request.session.get('pending_user_id')
+    if not user_id:
+        messages.error(request, "Session expired. Please register again.")
+        return redirect('register')
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, "User not found. Please register again.")
+        return redirect('register')
+    
+    if user.is_active:
+        messages.info(request, "Your account is already verified. Please login.")
+        return redirect('login')
+    
+    if request.method == 'POST':
+        entered_code = request.POST.get('code')
+        
+        if not entered_code:
+            messages.error(request, "Please enter the verification code.")
+            return render(request, 'chatbot/verify_email.html', {'email': user.email})
+        
+        stored_code = cache.get(f'verify_code_{user.id}')
+        
+        if not stored_code:
+            messages.error(request, "Verification code has expired. Please register again.")
+            request.session.pop('pending_user_id', None)
+            return redirect('register')
+        
+        if entered_code == stored_code:
+            user.is_active = True
+            user.save()
+            cache.delete(f'verify_code_{user.id}')
+            request.session.pop('pending_user_id', None)
+            messages.success(request, "Email verified successfully! You can now log in.")
+            return redirect('login')
+        else:
+            messages.error(request, "Invalid verification code. Please try again.")
+            return render(request, 'chatbot/verify_email.html', {'email': user.email})
+    
+    return render(request, 'chatbot/verify_email.html', {'email': user.email})
+
 
 @login_required
 def profile(request):
@@ -753,14 +622,51 @@ def profile(request):
     }
     return render(request, 'chatbot/profile.html', context)
 
-# ---------- ADMIN DASHBOARD VIEWS ----------
-from django.contrib.admin.views.decorators import staff_member_required
-from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404
 
-@rate_limit('admin_login', rate=3, period=60)  # Stricter for admin
+@login_required
+def edit_profile(request):
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        bio = request.POST.get('bio', '')
+        location = request.POST.get('location', '')
+        profile.bio = bio
+        profile.location = location
+        
+        if 'avatar' in request.FILES:
+            if profile.avatar and profile.avatar.name != 'avatars/default.png':
+                try:
+                    profile.avatar.delete(save=False)
+                except:
+                    pass
+            profile.avatar = request.FILES['avatar']
+        
+        profile.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
+    
+    context = {'profile': profile}
+    return render(request, 'chatbot/edit_profile.html', context)
+
+
+@login_required
+def delete_avatar(request):
+    profile = request.user.profile
+    if profile.avatar and profile.avatar.name != 'avatars/default.png':
+        try:
+            profile.avatar.delete(save=False)
+        except:
+            pass
+        profile.avatar = None
+        profile.save()
+        messages.success(request, 'Avatar removed successfully!')
+    return redirect('edit_profile')
+
+
+# ===== ADMIN DASHBOARD =====
+
+@rate_limit('admin_login', rate=3, period=60)
 def admin_login(request):
-    """Admin login page."""
     if request.user.is_authenticated and request.user.is_staff:
         return redirect('admin_dashboard')
     
@@ -770,32 +676,16 @@ def admin_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None and user.is_staff:
             login(request, user)
-            # Redirect to 'next' if present, else dashboard
             next_url = request.GET.get('next') or request.POST.get('next') or 'admin_dashboard'
             return redirect(next_url)
         else:
             messages.error(request, 'Invalid credentials or not an admin.')
     
     return render(request, 'chatbot/admin_login.html')
-    """Admin login page."""
-    if request.user.is_authenticated and request.user.is_staff:
-        return redirect('admin_dashboard')
-    
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None and user.is_staff:
-            login(request, user)
-            return redirect('admin_dashboard')
-        else:
-            messages.error(request, 'Invalid credentials or not an admin.')
-    
-    return render(request, 'chatbot/admin_login.html')
+
 
 @staff_member_required(login_url='admin_login')
 def admin_dashboard(request):
-    """Admin dashboard with stats."""
     context = {
         'total_resources': Resource.objects.count(),
         'total_quizzes': Quiz.objects.count(),
@@ -806,12 +696,11 @@ def admin_dashboard(request):
     }
     return render(request, 'chatbot/admin_dashboard.html', context)
 
+
 @staff_member_required(login_url='admin_login')
 def admin_resources(request):
-    """Manage resources."""
     resources = Resource.objects.all().order_by('-created_at')
     if request.method == 'POST':
-        # Add new resource
         title = request.POST.get('title')
         summary = request.POST.get('summary')
         content = request.POST.get('content')
@@ -838,17 +727,18 @@ def admin_resources(request):
     }
     return render(request, 'chatbot/admin_resources.html', context)
 
+
 @staff_member_required(login_url='admin_login')
 def admin_delete_resource(request, resource_id):
-    """Delete a resource."""
     resource = get_object_or_404(Resource, id=resource_id)
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted Resource ID {resource_id} - {resource.title}')
     resource.delete()
     messages.success(request, 'Resource deleted successfully!')
     return redirect('admin_resources')
 
+
 @staff_member_required(login_url='admin_login')
 def admin_quizzes(request):
-    """Manage quizzes."""
     quizzes = Quiz.objects.all().order_by('-created_at')
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -875,19 +765,18 @@ def admin_quizzes(request):
     }
     return render(request, 'chatbot/admin_quizzes.html', context)
 
+
 @staff_member_required(login_url='admin_login')
 def admin_delete_quiz(request, quiz_id):
-
-    logger.warning(f'AUDIT: Admin {request.user.username} deleted Quiz ID {quiz_id} - {quiz.title}')
-    """Delete a quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted Quiz ID {quiz_id} - {quiz.title}')
     quiz.delete()
     messages.success(request, 'Quiz deleted successfully!')
     return redirect('admin_quizzes')
 
+
 @staff_member_required(login_url='admin_login')
 def admin_faqs(request):
-    """Manage FAQs."""
     faqs = FAQ.objects.all().order_by('-created_at')
     if request.method == 'POST':
         question = request.POST.get('question')
@@ -908,25 +797,22 @@ def admin_faqs(request):
     }
     return render(request, 'chatbot/admin_faqs.html', context)
 
+
 @staff_member_required(login_url='admin_login')
 def admin_delete_faq(request, faq_id):
-    logger.warning(f'AUDIT: Admin {request.user.username} deleted FAQ ID {faq_id} - {faq.title}')
-    """Delete an FAQ."""
     faq = get_object_or_404(FAQ, id=faq_id)
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted FAQ ID {faq_id} - {faq.question}')
     faq.delete()
     messages.success(request, 'FAQ deleted successfully!')
     return redirect('admin_faqs')
 
-    # ---------- ADMIN QUIZ QUESTIONS ----------
 
 @staff_member_required(login_url='admin_login')
 def admin_quiz_detail(request, quiz_id):
-    """View quiz details and manage its questions."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
     questions = QuizQuestion.objects.filter(quiz=quiz).order_by('order')
     
     if request.method == 'POST':
-        # Add new question
         question_text = request.POST.get('question_text')
         option_a = request.POST.get('option_a')
         option_b = request.POST.get('option_b')
@@ -958,70 +844,21 @@ def admin_quiz_detail(request, quiz_id):
     }
     return render(request, 'chatbot/admin_quiz_detail.html', context)
 
+
 @staff_member_required(login_url='admin_login')
 def admin_delete_question(request, question_id):
-
-    logger.warning(f'AUDIT: Admin {request.user.username} deleted Question ID {question_id} - {question.title}')
-    """Delete a question from a quiz."""
     question = get_object_or_404(QuizQuestion, id=question_id)
+    logger.warning(f'AUDIT: Admin {request.user.username} deleted Question ID {question_id} - {question.question_text}')
     quiz_id = question.quiz.id
     question.delete()
     messages.success(request, 'Question deleted successfully!')
     return redirect('admin_quiz_detail', quiz_id=quiz_id)
 
-@login_required
-def edit_profile(request):
-    """Edit user profile (avatar, bio, location)."""
-    profile, created = Profile.objects.get_or_create(user=request.user)
-    
-    if request.method == 'POST':
-        # Update bio and location
-        bio = request.POST.get('bio', '')
-        location = request.POST.get('location', '')
-        profile.bio = bio
-        profile.location = location
-        
-        # Update avatar if uploaded
-        if 'avatar' in request.FILES:
-            # Delete old avatar if it exists and is not default
-            if profile.avatar and profile.avatar.name != 'avatars/default.png':
-                try:
-                    profile.avatar.delete(save=False)
-                except:
-                    pass
-            profile.avatar = request.FILES['avatar']
-        
-        profile.save()
-        messages.success(request, 'Profile updated successfully!')
-        return redirect('profile')
-    
-    context = {
-        'profile': profile,
-    }
-    return render(request, 'chatbot/edit_profile.html', context)
-
-@login_required
-def delete_avatar(request):
-    """Remove user avatar."""
-    profile = request.user.profile
-    if profile.avatar and profile.avatar.name != 'avatars/default.png':
-        try:
-            profile.avatar.delete(save=False)
-        except:
-            pass
-        profile.avatar = None
-        profile.save()
-        messages.success(request, 'Avatar removed successfully!')
-    return redirect('edit_profile')
-
-
 
 @staff_member_required(login_url='admin_login')
 def admin_users(request):
-    """View all registered users with their activity."""
     users = User.objects.all().order_by('-date_joined')
     
-    # Get user stats
     total_users = users.count()
     active_users = users.filter(last_login__gte=timezone.now() - timedelta(days=30)).count()
     new_users_this_week = users.filter(date_joined__gte=timezone.now() - timedelta(days=7)).count()
@@ -1034,9 +871,9 @@ def admin_users(request):
     }
     return render(request, 'chatbot/admin_users.html', context)
 
+
 @staff_member_required(login_url='admin_login')
 def admin_toggle_user_status(request, user_id):
-    """Toggle user active status (activate/deactivate)."""
     user = get_object_or_404(User, id=user_id)
     user.is_active = not user.is_active
     user.save()
@@ -1044,93 +881,16 @@ def admin_toggle_user_status(request, user_id):
     messages.success(request, f'User {user.username} has been {status}.')
     return redirect('admin_users')
 
+
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def admin_delete_user(request, user_id):
-    # Prevent deleting yourself
     if request.user.id == user_id:
         messages.error(request, "You cannot delete your own account.")
         return redirect('admin_users')
     
-    # Get the user or show 404
     user = get_object_or_404(User, id=user_id)
-    
-    # Log the audit BEFORE deleting
     logger.warning(f'AUDIT: Admin {request.user.username} deleted User ID {user_id} - {user.username}')
-    
-    # Delete the user
     user.delete()
-    
     messages.success(request, f"User '{user.username}' deleted successfully.")
     return redirect('admin_users')
-
-
-def home(request):
-    """
-    Professional landing page for Digital Rights Hub
-    """
-    # Get some stats for the dashboard
-    total_users = User.objects.count()
-    total_resources = Resource.objects.count()
-    total_quizzes = Quiz.objects.count()
-    
-    context = {
-        'total_users': total_users,
-        'total_resources': total_resources,
-        'total_quizzes': total_quizzes,
-    }
-    return render(request, 'chatbot/home.html', context)
-
-@rate_limit('verify_email', rate=5, period=60)
-def verify_email(request):
-    """Verify the user's email with the 6-digit code."""
-    
-    # Check if there's a pending user
-    user_id = request.session.get('pending_user_id')
-    if not user_id:
-        messages.error(request, "Session expired. Please register again.")
-        return redirect('register')
-    
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        messages.error(request, "User not found. Please register again.")
-        return redirect('register')
-    
-    # If user is already active, redirect to login
-    if user.is_active:
-        messages.info(request, "Your account is already verified. Please login.")
-        return redirect('login')
-    
-    if request.method == 'POST':
-        entered_code = request.POST.get('code')
-        
-        if not entered_code:
-            messages.error(request, "Please enter the verification code.")
-            return render(request, 'chatbot/verify_email.html', {'email': user.email})
-        
-        # Get the stored code from cache
-        stored_code = cache.get(f'verify_code_{user.id}')
-        
-        if not stored_code:
-            messages.error(request, "Verification code has expired. Please register again.")
-            request.session.pop('pending_user_id', None)
-            return redirect('register')
-        
-        if entered_code == stored_code:
-            # SUCCESS! Activate the user
-            user.is_active = True
-            user.save()
-            
-            # Clean up
-            cache.delete(f'verify_code_{user.id}')
-            request.session.pop('pending_user_id', None)
-            
-            messages.success(request, "Email verified successfully! You can now log in.")
-            return redirect('login')
-        else:
-            messages.error(request, "Invalid verification code. Please try again.")
-            return render(request, 'chatbot/verify_email.html', {'email': user.email})
-    
-    # GET request - show the verification form
-    return render(request, 'chatbot/verify_email.html', {'email': user.email})
